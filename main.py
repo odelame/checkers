@@ -1,5 +1,8 @@
 #! /bin/env python3
 
+from os import environ
+environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
+
 import pygame
 from consts import WIDTH, HEIGHT, WHITE_WINS, BLACK_WINS, RED
 from interface import Board
@@ -37,6 +40,8 @@ def display():
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 game_api.select(*pygame.mouse.get_pos())
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                game_api.switch_turn()
 
             # if event.type == pygame.MOUSEBUTTONUP:
             #    board.select(*pygame.mouse.get_pos())
@@ -48,6 +53,7 @@ def display():
             elif event.type == BLACK_WINS:
                 draw_msg("BLACK WINS")
                 game_running = False
+                                
 
         game_api.draw(WIN)
         pygame.display.update()

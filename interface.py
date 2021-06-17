@@ -32,6 +32,9 @@ class Board:
             for j, piece in enumerate(row):
                 if piece != None:
                     piece.draw(WIN, i, j)
+    
+    def __len__(self):
+        return len(self.pieces)
 
     def draw(self, win):
         self.draw_cubes(win)
