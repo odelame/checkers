@@ -1,4 +1,4 @@
-#include "engine.hpp"
+#include "bitboard.hpp"
 
 BitBoard::BitBoard() : white_is_in(false), black_is_in(false), kings(false) {
     for (int i = 0; i < STARTING_ROWS * NUM_COLS >> 1; i++) {
