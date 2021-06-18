@@ -1,8 +1,6 @@
 #ifndef _ENGINE_HPP_
 #define _ENGINE_HPP_
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 #include <iostream>
 #include <bitset>
 #include <iomanip>
@@ -27,19 +25,12 @@ private:
     // 4095ULL => the number that in the bitboard represents all the starting white squares.
     std::bitset<NUMBER_OF_REACHABLE_SQUARES> white_is_in = { 4095ULL };
     std::bitset<NUMBER_OF_REACHABLE_SQUARES> kings = { 0ULL };
-    class ProxyIndexing {
-    private:
-        const int x;
-        const BitBoard* board;
-    public:
-        ProxyIndexing(const BitBoard* board, const int x);
-        Piece operator[](const int y) const;
-    };
 
 public:
     BitBoard();
-    ProxyIndexing operator[](const int x) const;
 
+    void set(const int x, const int y, const Piece value);
+    Piece get(const int x, const int y) const;
 
     friend std::ostream& operator<<(std::ostream& strm, const BitBoard& board);
 };
