@@ -50,7 +50,6 @@ class CheckersApi:
 
         if self.selected != None and (x, y) in self.moves(self.selected):
             self.move(self.selected, (x, y))
-            self.selected = None
             
     def get_direction(self, position):
         return CheckersApi.y_direction.up if self.get_color(position) == "b" else CheckersApi.y_direction.down
@@ -71,7 +70,8 @@ class CheckersApi:
             self[(position[0] + destination[0]) // 2, (position[1] + destination[1]) // 2] = None
             self[position] = None
             self.after_jump = True 
-            if len(self.moves(destination)) == 0:
+            self.selected = destination
+            if len(self.jumps(destination)) == 0:
                 self._switch_turn()    
         elif destination in self.moves(position):
             self[destination] = self[position]
@@ -80,7 +80,7 @@ class CheckersApi:
         else:
             return
         
-        if destination[1] == 0 or destination[1] == ROWS:
+        if destination[1] == 0 or destination[1] == ROWS - 1:
             self[destination].promote()
  
     def moves(self, position):
@@ -132,6 +132,7 @@ class CheckersApi:
                 pygame.event.post(pygame.event.Event(WHITE_WINS))
         
         self.after_jump = False
+        self.selected = None
 
     def draw(self, win):
         self.board.draw(win)
