@@ -44,6 +44,9 @@ class CheckersApi:
         x //= SQUARE_SIZE
         y //= SQUARE_SIZE
 
+        if self.turn != 'b':
+            y = ROWS - y - 1
+
         if self[x, y] != None and self[x, y].color == self.turn:
             self.selected = (x, y)
             return
@@ -84,12 +87,13 @@ class CheckersApi:
             self[destination].promote()
  
     def moves(self, position):
-        y_leagal_direction = self.y_leagal_directions(position)
-        x, y = position
-        possible_moves = [(x + 1, y + y_direction) for y_direction in y_leagal_direction] + [(x - 1, y + y_direction) for y_direction in y_leagal_direction]  
+        if not self.after_jump:
+            y_leagal_direction = self.y_leagal_directions(position)
+            x, y = position
+            possible_moves = [(x + 1, y + y_direction) for y_direction in y_leagal_direction] + [(x - 1, y + y_direction) for y_direction in y_leagal_direction]  
         
-        return [move for move in possible_moves if self.leagal_move(position, move, y_leagal_direction)] + self.jumps(position)
-    
+            return [move for move in possible_moves if self.leagal_move(position, move, y_leagal_direction)] + self.jumps(position)
+        return self.jumps(position)
     def jumps(self, position):
         y_leagal_direction = self.y_leagal_directions(position)
         x, y = position
@@ -116,6 +120,8 @@ class CheckersApi:
             self.turn = "b"
 
         game_over = True
+        self.after_jump = False
+        self.selected = None
 
         for i, row in enumerate(self.board.pieces):
             for j, piece in enumerate(row):
@@ -130,13 +136,14 @@ class CheckersApi:
                 pygame.event.post(pygame.event.Event(BLACK_WINS))
             else:
                 pygame.event.post(pygame.event.Event(WHITE_WINS))
-        
-        self.after_jump = False
-        self.selected = None
 
     def draw(self, win):
-        self.board.draw(win)
+        self.board.draw(win, self.turn != "b")
         if None != self.selected:
             for x, y in self.moves(self.selected):
-                pygame.draw.circle(win, BLUE, (x * SQUARE_SIZE + SQUARE_SIZE //
-                                               2, y * SQUARE_SIZE + SQUARE_SIZE // 2), SQUARE_SIZE // 4)
+                if self.turn == 'b':
+                    pygame.draw.circle(win, BLUE, (x * SQUARE_SIZE + SQUARE_SIZE //
+                                                   2, y * SQUARE_SIZE + SQUARE_SIZE // 2), SQUARE_SIZE // 4)
+                else:
+                    pygame.draw.circle(win, BLUE, (x * SQUARE_SIZE + SQUARE_SIZE //
+                                                   2, (ROWS - y - 1) * SQUARE_SIZE + SQUARE_SIZE // 2), SQUARE_SIZE // 4)

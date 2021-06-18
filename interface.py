@@ -19,26 +19,37 @@ class Board:
             for c in range(abs(r % 2 - 1), COLS, 2):
                 self.pieces[c][r] = Piece("b")
 
-    def draw_cubes(self, win):
+    def draw_cubes(self, win, rotate=False):
         win.fill(BLACK)
 
         for r in range(ROWS):
-            for c in range(r % 2, COLS, 2):
-                pygame.draw.rect(win, WHITE, (r * SQUARE_SIZE,
-                                 c * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+            if not rotate:
+                for c in range(r % 2, COLS, 2):
+                    pygame.draw.rect(win, WHITE, (r * SQUARE_SIZE,
+                                     c * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+            else:
+                for c in range((r + 1) % 2, COLS, 2):
+                        pygame.draw.rect(win, WHITE, (r * SQUARE_SIZE,
+                                     c * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
 
-    def draw_pieces(self, WIN):
-        for i, row in enumerate(self.pieces):
-            for j, piece in enumerate(row):
-                if piece != None:
-                    piece.draw(WIN, i, j)
+    def draw_pieces(self, WIN, rotate=False):
+        if not rotate:
+            for i, row in enumerate(self.pieces):
+                for j, piece in enumerate(row):
+                    if piece != None:
+                        piece.draw(WIN, i, j)
+        else:
+            for i, row in enumerate(reversed(self.pieces)):
+                for j, piece in enumerate(reversed(row)):
+                    if piece != None:
+                        piece.draw(WIN, COLS - i - 1, j)
     
     def __len__(self):
         return len(self.pieces)
 
-    def draw(self, win):
-        self.draw_cubes(win)
-        self.draw_pieces(win)
+    def draw(self, win, rotate=False):
+        self.draw_cubes(win, rotate)
+        self.draw_pieces(win, rotate)
 
     def __getitem__(self, index):
         return self.pieces[index]
