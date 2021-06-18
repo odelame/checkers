@@ -5,6 +5,7 @@
 #include <pybind11/stl.h>
 #include <iostream>
 #include <bitset>
+#include <iomanip>
 
 constexpr int NUM_ROWS = 8;
 constexpr int NUM_COLS = 8;
@@ -21,9 +22,11 @@ enum class Piece {
 
 class BitBoard {
 private:
-    std::bitset<NUMBER_OF_REACHABLE_SQUARES> black_is_in = { false };
-    std::bitset<NUMBER_OF_REACHABLE_SQUARES> white_is_in = { true };
-    std::bitset<NUMBER_OF_REACHABLE_SQUARES> kings = { false };
+    // 4293918720ULL => the number that in the bitboard represents all the starting black squares.
+    std::bitset<NUMBER_OF_REACHABLE_SQUARES> black_is_in = { 4293918720ULL };
+    // 4095ULL => the number that in the bitboard represents all the starting white squares.
+    std::bitset<NUMBER_OF_REACHABLE_SQUARES> white_is_in = { 4095ULL };
+    std::bitset<NUMBER_OF_REACHABLE_SQUARES> kings = { 0ULL };
     class ProxyIndexing {
     private:
         const int x;
@@ -40,6 +43,8 @@ public:
 
     friend std::ostream& operator<<(std::ostream& strm, const BitBoard& board);
 };
+
 std::ostream& operator<<(std::ostream& strm, const BitBoard& board);
+std::ostream& operator<<(std::ostream& strm, Piece piece);
 
 #endif // _ENGINE_HPP_

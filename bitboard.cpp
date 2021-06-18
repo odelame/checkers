@@ -1,11 +1,6 @@
 #include "bitboard.hpp"
 
-BitBoard::BitBoard() : white_is_in(false), black_is_in(false), kings(false) {
-    for (int i = 0; i < STARTING_ROWS * NUM_COLS >> 1; i++) {
-        white_is_in[i] = true;
-        black_is_in[NUMBER_OF_REACHABLE_SQUARES - i - 1] = true;
-    }
-}
+BitBoard::BitBoard() {}
 
 BitBoard::ProxyIndexing::ProxyIndexing(const BitBoard* board, const int x) : board(board), x(x) {}
 
@@ -37,19 +32,8 @@ std::ostream& operator<<(std::ostream& strm, const BitBoard& board) {
     for (int y = 0; y < NUM_ROWS; y++) {
         strm << '[';
 
-        for (int x = 0; x < NUM_COLS; x++) {
-            switch (board[x][y]) {
-            case Piece::NONE:
-                strm << ' ';
-                break;
-            case Piece::BLACK:
-                strm << 'b';
-                break;
-            case Piece::WHITE:
-                strm << 'w';
-                break;
-            }
-        }
+        for (int x = 0; x < NUM_COLS; x++)
+            strm << std::setw(7) << std::left << board[x][y];
 
         strm << ']' << std::endl;
     }
@@ -69,10 +53,10 @@ std::ostream& operator<<(std::ostream& strm, Piece piece) {
         strm << "WHITE";
         break;
     case Piece::BLACK_KING:
-        strm << "BLACK_KING";
+        strm << "K_BLACK";
         break;
     case Piece::WHITE_KING:
-        strm << "WHITE_KING";
+        strm << "K_WHITE";
         break;
     }
 
@@ -82,9 +66,5 @@ std::ostream& operator<<(std::ostream& strm, Piece piece) {
 
 int main() {
     BitBoard b;
-    std::cout << b[2][1] << std::endl;
-    std::cout << b[0][1] << std::endl;
-    std::cout << b[1][5] << std::endl;
-
     std::cout << b;
 }

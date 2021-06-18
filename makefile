@@ -11,3 +11,10 @@ bitboard.o: bitboard.hpp	bitboard.cpp
 clean:
 	rm -f *.o
 	rm -f *.gch
+	
+cclean: engine	clean
+
+run: engine
+	./engine
+
+runclean: run 	clean
