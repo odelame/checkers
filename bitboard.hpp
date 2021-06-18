@@ -1,5 +1,5 @@
-#ifndef _ENGINE_HPP_
-#define _ENGINE_HPP_
+#ifndef _BITBOARD_HPP_
+#define _BITBOARD_HPP_
 
 #include <iostream>
 #include <bitset>
@@ -38,4 +38,4 @@ public:
 std::ostream& operator<<(std::ostream& strm, const BitBoard& board);
 std::ostream& operator<<(std::ostream& strm, Piece piece);
 
-#endif // _ENGINE_HPP_
+#endif // _BITBOARD_HPP_
