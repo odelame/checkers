@@ -40,11 +40,6 @@ def display():
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 game_api.select(*pygame.mouse.get_pos())
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                game_api.switch_turn()
-
-            # if event.type == pygame.MOUSEBUTTONUP:
-            #    board.select(*pygame.mouse.get_pos())
 
             elif event.type == WHITE_WINS:
                 draw_msg("WHITE WINS")
