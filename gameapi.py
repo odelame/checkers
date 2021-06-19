@@ -33,6 +33,7 @@ class CheckersApi:
         self.turn = 'b'
         self.selected = None
         self.after_jump = False
+        self.jumps_available = False
         
     def __getitem__(self, position):
         return self.board[position[0]][position[1]]
@@ -87,6 +88,8 @@ class CheckersApi:
             self[destination].promote()
  
     def moves(self, position):
+        if self.jumps_available or self.after_jump:
+            return self.jumps(position)
         if not self.after_jump:
             y_leagal_direction = self.y_leagal_directions(position)
             x, y = position
@@ -94,6 +97,7 @@ class CheckersApi:
         
             return [move for move in possible_moves if self.leagal_move(position, move, y_leagal_direction)] + self.jumps(position)
         return self.jumps(position)
+    
     def jumps(self, position):
         y_leagal_direction = self.y_leagal_directions(position)
         x, y = position
@@ -122,13 +126,18 @@ class CheckersApi:
         game_over = True
         self.after_jump = False
         self.selected = None
+        self.jumps_available = False
 
         for i, row in enumerate(self.board.pieces):
             for j, piece in enumerate(row):
-                if piece != None and piece.color == self.turn and len(self.moves((i, j))) != 0:
+                if piece != None and piece.color == self.turn and len(self.jumps((i, j))) != 0:
                     game_over = False
+                    self.jumps_available = True
                     break
-            if not game_over:
+                if game_over and piece != None and piece.color == self.turn and len(self.moves((i, j))) != 0:
+                    game_over = False
+
+            if not game_over and self.jumps_available:
                 break
 
         if game_over:
