@@ -2,13 +2,13 @@ INC = $(shell python3 -m pybind11 --includes)
 LINK.o = $(LINK.cpp)
 CPP=c++
 
-engine: bitboard.o
+engine: bitboard.o	gameapi.o
 	$(CPP) $^ $(INC) -o $@
-	
-bitboard.o: bitboard.hpp	bitboard.cpp
+
+gameapi.o: bitboard.o 	gameapi.hpp	gameapi.cpp
 	$(CPP) $^ $(INC) -c
 	
-gameapi.o: bitboard.o 	gameapi.hpp	gameapi.cpp
+bitboard.o: bitboard.cpp	bitboard.hpp
 	$(CPP) $^ $(INC) -c
 
 clean:
