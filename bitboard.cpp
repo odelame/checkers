@@ -1,25 +1,37 @@
 #include "bitboard.hpp"
 
 BitBoard::BitBoard() {}
+BitBoard::BitBoard(const BitBoard& other) :
+    black_is_in(other.black_is_in), white_is_in(other.white_is_in), kings(other.kings) {}
 
+bool BitBoard::is_black(const int x, const int y) const {
+    int index = (x >> 1) + (y << 2);
+    return this->black_is_in[index] && (x % 2 != y % 2);
+}
+
+bool BitBoard::is_white(const int x, const int y) const {
+    int index = (x >> 1) + (y << 2);
+    return this->white_is_in[index] && (x % 2 != y % 2);
+}
+
+bool BitBoard::is_king(const int x, const int y) const {
+    int index = (x >> 1) + (y << 2);
+    return this->kings[index] && (x % 2 != y % 2);
+}
 
 Piece BitBoard::get(const int x, const int y) const {
-    if (x % 2 == y % 2) {
-        return Piece::NONE;
-    }
-
-    int index = (x >> 1) + (y << 2);
-
-    if (this->black_is_in[index]) {
-        if (this->kings[index])
+    if (this->is_black(x, y)) {
+        if (this->is_king(x, y))
             return Piece::BLACK_KING;
         return Piece::BLACK;
     }
-    if (this->white_is_in[index]) {
-        if (this->kings[index])
+
+    if (this->is_white(x, y)) {
+        if (this->is_king(x, y))
             return Piece::WHITE_KING;
         return Piece::WHITE;
     }
+
     return Piece::NONE;
 }
 
@@ -40,6 +52,11 @@ void BitBoard::set(const int x, const int y, const Piece value) {
         this->white_is_in[index] = true;
         this->kings[index] = false;
         break;
+    case Piece::BLACK:
+        this->black_is_in[index] = true;
+        this->white_is_in[index] = false;
+        this->kings[index] = false;
+        break;
     case Piece::WHITE_KING:
         this->black_is_in[index] = false;
         this->white_is_in[index] = true;
@@ -51,6 +68,21 @@ void BitBoard::set(const int x, const int y, const Piece value) {
         this->kings[index] = true;
         break;
     }
+}
+
+BitBoard BitBoard::move(const int source_x, const int source_y, const int dest_x, const int dest_y) {
+    BitBoard end_position(*this);
+    end_position.set(dest_x, dest_y, end_position.get(source_x, source_y));
+    end_position.set(source_x, source_y, Piece::NONE);
+    return end_position;
+}
+
+BitBoard BitBoard::capture(const int source_x, const int source_y, const int capture_x, const int capture_y) {
+    BitBoard end_position(*this);
+    end_position.set(2 * capture_x - source_x, 2 * capture_y - source_y, end_position.get(source_x, source_y));
+    end_position.set(source_x, source_y, Piece::NONE);
+    end_position.set(capture_x, capture_y, Piece::NONE);
+    return end_position;
 }
 
 std::ostream& operator<<(std::ostream& strm, const BitBoard& board) {
@@ -87,3 +119,13 @@ std::ostream& operator<<(std::ostream& strm, Piece piece) {
 
     return strm;
 }
+
+/*
+int main() {
+    BitBoard board;
+    std::cout << board << std::endl;
+    std::cout << (board = board.move(0, 5, 1, 4)) << std::endl;
+    std::cout << (board = board.move(3, 2, 2, 3)) << std::endl;
+    std::cout << (board = board.capture(1, 4, 2, 3)) << std::endl;
+}
+*/

@@ -28,9 +28,17 @@ private:
 
 public:
     BitBoard();
+    BitBoard(const BitBoard& other);
 
     void set(const int x, const int y, const Piece value);
     Piece get(const int x, const int y) const;
+
+    bool is_king(const int x, const int y) const;
+    bool is_black(const int x, const int y) const;
+    bool is_white(const int x, const int y) const;
+
+    BitBoard move(const int source_x, const int source_y, const int dest_x, const int dest_y);
+    BitBoard capture(const int source_x, const int source_y, const int dest_x, const int dest_y);
 
     friend std::ostream& operator<<(std::ostream& strm, const BitBoard& board);
 };

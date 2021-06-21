@@ -7,6 +7,9 @@ engine: bitboard.o
 	
 bitboard.o: bitboard.hpp	bitboard.cpp
 	$(CPP) $^ $(INC) -c
+	
+gameapi.o: bitboard.o 	gameapi.hpp	gameapi.cpp
+	$(CPP) $^ $(INC) -c
 
 clean:
 	rm -f *.o
