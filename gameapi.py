@@ -45,9 +45,6 @@ class CheckersApi:
         x //= SQUARE_SIZE
         y //= SQUARE_SIZE
 
-        if self.turn != 'b':
-            y = ROWS - y - 1
-
         if self[x, y] != None and self[x, y].color == self.turn:
             self.selected = (x, y)
             return
@@ -68,18 +65,18 @@ class CheckersApi:
         
         return y_leagal_direction
     
-    def move(self, position, destination):
-        if destination in self.jumps(position):
-            self[destination] = self[position]
-            self[(position[0] + destination[0]) // 2, (position[1] + destination[1]) // 2] = None
-            self[position] = None
+    def move(self, source, destination):
+        if destination in self.jumps(source):
+            self[destination] = self[source]
+            self[(source[0] + destination[0]) // 2, (source[1] + destination[1]) // 2] = None
+            self[source] = None
             self.after_jump = True 
             self.selected = destination
             if len(self.jumps(destination)) == 0:
                 self._switch_turn()    
-        elif destination in self.moves(position):
-            self[destination] = self[position]
-            self[position] = None
+        elif destination in self.moves(source):
+            self[destination] = self[source]
+            self[source] = None
             self._switch_turn()
         else:
             return
@@ -105,18 +102,14 @@ class CheckersApi:
         possible_jumps = [(x - 2, y + 2 * y_direction) for y_direction in y_leagal_direction] + [(x + 2, y + 2 * y_direction) for y_direction in y_leagal_direction]
         return [jump for jump in possible_jumps if self.leagal_jump(position, jump, y_leagal_direction)]
     
-    def leagal_jump(self, origin, result, y_leagal_directions):
-        return self.includes(result) and self[result] == None and abs(result[0] - origin[0]) == 2 and (result[1] - origin[1]) / 2 in y_leagal_directions and self[(result[0] + origin[0]) // 2, (result[1] + origin[1]) // 2] != None and self.get_color(((result[0] + origin[0]) // 2, (result[1] + origin[1]) // 2)) != self.get_color(origin)
+    def leagal_jump(self, source, dest, y_leagal_directions):
+        return self.includes(dest) and self[dest] == None and abs(dest[0] - source[0]) == 2 and (dest[1] - source[1]) / 2 in y_leagal_directions and self[(dest[0] + source[0]) // 2, (dest[1] + source[1]) // 2] != None and self.get_color(((dest[0] + source[0]) // 2, (dest[1] + source[1]) // 2)) != self.get_color(source)
         
-    def leagal_move(self, origin, result, y_leagal_directions):
-        return self.includes(result) and self[result] == None and abs(result[0] - origin[0]) == 1 and result[1] - origin[1] in y_leagal_directions
+    def leagal_move(self, source, dest, y_leagal_directions):
+        return self.includes(dest) and self[dest] == None and abs(dest[0] - source[0]) == 1 and dest[1] - source[1] in y_leagal_directions
         
     def includes(self, coordinates):
         return 0 <= coordinates[0] < len(self.board) and 0 <= coordinates[1] < len(self.board[0])
-
-    def switch_turn(self):
-        if self.after_jump:
-            self._switch_turn()
         
     def _switch_turn(self):
         if self.turn == "b":
@@ -149,12 +142,9 @@ class CheckersApi:
                 pygame.event.post(pygame.event.Event(WHITE_WINS))
 
     def draw(self, win):
-        self.board.draw(win, self.turn != "b")
+        self.board.draw(win)
         if None != self.selected:
             for x, y in self.moves(self.selected):
-                if self.turn == 'b':
-                    pygame.draw.circle(win, BLUE, (x * SQUARE_SIZE + SQUARE_SIZE //
-                                                   2, y * SQUARE_SIZE + SQUARE_SIZE // 2), SQUARE_SIZE // 4)
-                else:
-                    pygame.draw.circle(win, BLUE, (x * SQUARE_SIZE + SQUARE_SIZE //
-                                                   2, (ROWS - y - 1) * SQUARE_SIZE + SQUARE_SIZE // 2), SQUARE_SIZE // 4)
+                pygame.draw.circle(win, BLUE, (x * SQUARE_SIZE + SQUARE_SIZE //
+                                                2, y * SQUARE_SIZE + SQUARE_SIZE // 2), SQUARE_SIZE // 4)
+                    
