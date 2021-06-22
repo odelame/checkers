@@ -5,18 +5,15 @@ BitBoard::BitBoard(const BitBoard& other) :
     black_is_in(other.black_is_in), white_is_in(other.white_is_in), kings(other.kings) {}
 
 bool BitBoard::is_black(const int x, const int y) const {
-    int index = (x >> 1) + (y << 2);
-    return this->black_is_in[index] && (x % 2 != y % 2);
+    return this->black_is_in[(x >> 1) + (y << 2)];
 }
 
 bool BitBoard::is_white(const int x, const int y) const {
-    int index = (x >> 1) + (y << 2);
-    return this->white_is_in[index] && (x % 2 != y % 2);
+    return this->white_is_in[(x >> 1) + (y << 2)];
 }
 
 bool BitBoard::is_king(const int x, const int y) const {
-    int index = (x >> 1) + (y << 2);
-    return this->kings[index] && (x % 2 != y % 2);
+    return this->kings[(x >> 1) + (y << 2)];
 }
 
 Piece BitBoard::get(const int x, const int y) const {
@@ -36,9 +33,6 @@ Piece BitBoard::get(const int x, const int y) const {
 }
 
 void BitBoard::set(const int x, const int y, const Piece value) {
-    if (x % 2 == y % 2) {
-        return;
-    }
     int index = (x >> 1) + (y << 2);
 
     switch (value) {
