@@ -90,12 +90,19 @@ BitBoard BitBoard::capture(const int source_x, const int source_y, const int cap
 
 std::ostream& operator<<(std::ostream& strm, const BitBoard& board) {
     for (int y = 0; y < NUM_ROWS; y++) {
-        strm << '[';
+        std::cout << '[';
 
-        for (int x = 0; x < NUM_COLS; x++)
-            strm << std::setw(8) << std::left << board.get(x, y);
-
-        strm << ']' << std::endl;
+        for (int x = (y + 1) & 1; x < NUM_COLS; x += 2) {
+            if (y & 1) {
+                strm << std::setw(8) << std::left << board.get(x, y);
+                strm << std::setw(8) << std::left << "NONE";
+            }
+            else {
+                strm << std::setw(8) << std::left << "NONE";
+                strm << std::setw(8) << std::left << board.get(x, y);
+            }
+        }
+        std::cout << ']' << std::endl;
     }
 
     return strm;
