@@ -4,19 +4,8 @@
 #include <iostream>
 #include <bitset>
 #include <iomanip>
-
-constexpr int NUM_ROWS = 8;
-constexpr int NUM_COLS = 8;
-constexpr int NUMBER_OF_REACHABLE_SQUARES = (NUM_ROWS * NUM_COLS) / 2;
-constexpr int STARTING_ROWS = 3;
-
-enum class Piece {
-    NONE = 0,
-    BLACK = 1,
-    WHITE = 2,
-    BLACK_KING = 3,
-    WHITE_KING = 4
-};
+#include "consts.hpp"
+#include <tuple>
 
 class BitBoard {
 private:
@@ -37,11 +26,14 @@ public:
     bool is_black(const int x, const int y) const;
     bool is_white(const int x, const int y) const;
 
-    BitBoard move(const int source_x, const int source_y, const int dest_x, const int dest_y);
-    BitBoard capture(const int source_x, const int source_y, const int dest_x, const int dest_y);
+    BitBoard move(const int source_x, const int source_y, const int dest_x, const int dest_y) const;
+    BitBoard capture(const int source_x, const int source_y, const int dest_x, const int dest_y) const;
 
     friend std::ostream& operator<<(std::ostream& strm, const BitBoard& board);
 };
+
+int get_index(const int x, const int y);
+std::pair<int, int> get_xy(const int index);
 
 std::ostream& operator<<(std::ostream& strm, const BitBoard& board);
 std::ostream& operator<<(std::ostream& strm, Piece piece);

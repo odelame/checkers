@@ -1,15 +1,16 @@
 INC = $(shell python3 -m pybind11 --includes)
 LINK.o = $(LINK.cpp)
 CPP=c++
+CPPFLAGS = -std=c++20 -Wall -pedantic -Ofast
 
 engine: bitboard.o	gameapi.o
-	$(CPP) $^ $(INC) -o $@
+	$(CPP) $^ -o $@
 
-gameapi.o: bitboard.o 	gameapi.hpp	gameapi.cpp
-	$(CPP) $^ $(INC) -c
+gameapi.o: gameapi.hpp	gameapi.cpp 	bitboard.hpp	consts.hpp	helpFuncs.hpp
+	$(CPP) $^  -c
 	
-bitboard.o: bitboard.cpp	bitboard.hpp
-	$(CPP) $^ $(INC) -c
+bitboard.o: bitboard.hpp	bitboard.cpp 	gameapi.hpp	consts.hpp
+	$(CPP) $^  -c
 
 clean:
 	rm -f *.o
