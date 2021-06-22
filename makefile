@@ -4,13 +4,13 @@ CPP=c++
 CPPFLAGS = -std=c++20 -Wall -pedantic -Ofast
 
 engine: bitboard.o	gameapi.o
-	$(CPP) $^ -o $@
+	$(CPP) $(CPPFLAGS) $^ -o $@
 
-gameapi.o: gameapi.hpp	gameapi.cpp 	bitboard.hpp	consts.hpp	helpFuncs.hpp
-	$(CPP) $^  -c
+gameapi.o: gameapi.hpp	gameapi.cpp 	bitboard.hpp	consts.hpp
+	$(CPP) $(CPPFLAGS) $^ -c
 	
 bitboard.o: bitboard.hpp	bitboard.cpp 	gameapi.hpp	consts.hpp
-	$(CPP) $^  -c
+	$(CPP) $(CPPFLAGS) $^ -c
 
 clean:
 	rm -f *.o
