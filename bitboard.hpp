@@ -5,7 +5,9 @@
 #include <bitset>
 #include <iomanip>
 #include "consts.hpp"
+#include "helpFuncs.hpp"
 #include <tuple>
+#include <vector>
 
 class BitBoard {
 private:
@@ -29,6 +31,14 @@ public:
     BitBoard move(const int source_x, const int source_y, const int dest_x, const int dest_y) const;
     BitBoard capture(const int source_x, const int source_y, const int dest_x, const int dest_y) const;
 
+
+    bool leagal_capture(bool black_turn, const int source_x, const int source_y, const int capture_x, const int capture_y) const;
+    bool leagal_move(const bool black_turn, const int source_x, const int source_y, const int dest_x, const int dest_y) const;
+
+    std::vector<BitBoard> moves(const bool black_turn, const int x, const int y);
+    std::vector<BitBoard> captures(const bool black_turn, const int x, const int y);
+
+    bool operator==(const BitBoard& other) const;
     friend std::ostream& operator<<(std::ostream& strm, const BitBoard& board);
 };
 

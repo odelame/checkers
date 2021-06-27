@@ -4,6 +4,10 @@ BitBoard::BitBoard() {}
 BitBoard::BitBoard(const BitBoard& other) :
     black_is_in(other.black_is_in), white_is_in(other.white_is_in), kings(other.kings) {}
 
+bool BitBoard::operator==(const BitBoard& other) const {
+    return this->black_is_in == other.black_is_in && this->white_is_in == other.white_is_in && this->kings == other.kings;
+}
+
 int get_index(const int x, const int y) {
     return (x >> 1) + (y << 2);
 }
@@ -24,6 +28,74 @@ bool BitBoard::is_king(const int x, const int y) const {
     return this->kings[get_index(x, y)];
 }
 
+bool in_bounds(const int index) {
+    return 0 <= index && index < NUM_COLS;
+}
+
+bool BitBoard::leagal_capture(bool black_turn, const int source_x, const int source_y, const int capture_x, const int capture_y) const {
+    if (!in_bounds(2 * capture_x - source_x) || !in_bounds(2 * capture_y - source_y) || Piece::NONE != this->get(2 * capture_x - source_x, 2 * capture_y - source_y))
+        return false;
+
+    const Piece captured = this->get(capture_x, capture_y);
+    const Piece source = this->get(source_x, source_y);
+
+    if (!is_opposite_color(source, captured))
+        return false;
+
+    if (black_turn) {
+        if (source == Piece::BLACK && capture_y - source_y == UP)
+            return true;
+
+        return source == Piece::BLACK_KING && std::abs(capture_y - source_y) == 1;
+    }
+    else {
+        if (source == Piece::WHITE && capture_y - source_y == DOWN)
+            return true;
+
+        return source == Piece::WHITE_KING && std::abs(capture_y - source_y) == 1;
+    }
+}
+
+bool BitBoard::leagal_move(const bool black_turn, const int source_x, const int source_y, const int dest_x, const int dest_y) const {
+    if (!in_bounds(dest_x) || !in_bounds(dest_y) || this->get(dest_x, dest_y) != Piece::NONE || std::abs(dest_x - source_x) != 1)
+        return false;
+
+    const Piece source = this->get(source_x, source_y);
+    if (black_turn)
+        return (source == Piece::BLACK && dest_y - source_y == UP) ||
+        (source == Piece::BLACK_KING && std::abs(dest_y - source_y) == 1);
+    else
+        return (source == Piece::WHITE && dest_y - source_y == DOWN) ||
+        (source == Piece::WHITE_KING && std::abs(dest_y - source_y) == 1);
+}
+
+std::vector<BitBoard> BitBoard::captures(const bool black_turn, const int x, const int y) {
+    auto candidates = get_candidate_locations(x, y);
+    std::vector<BitBoard> capture_positions;
+
+    for (auto dest : candidates) {
+        if (this->leagal_capture(black_turn, x, y, dest.first, dest.second)) {
+            auto new_position = this->capture(x, y, dest.first, dest.second);
+            capture_positions.push_back(new_position);
+        }
+    }
+
+    return capture_positions;
+}
+
+std::vector<BitBoard> BitBoard::moves(const bool black_turn, const int x, const int y) {
+    auto candidates = get_candidate_locations(x, y);
+    std::vector<BitBoard> moves;
+
+    for (auto dest : candidates) {
+        if (this->leagal_move(black_turn, x, y, dest.first, dest.second)) {
+            auto new_position = this->move(x, y, dest.first, dest.second);
+            moves.push_back(new_position);
+        }
+    }
+
+    return moves;
+}
 
 Piece BitBoard::get(const int x, const int y) const {
     if (this->is_black(x, y)) {
@@ -83,8 +155,8 @@ BitBoard BitBoard::move(const int source_x, const int source_y, const int dest_x
 BitBoard BitBoard::capture(const int source_x, const int source_y, const int capture_x, const int capture_y) const {
     BitBoard end_position(*this);
     end_position.set(2 * capture_x - source_x, 2 * capture_y - source_y, end_position.get(source_x, source_y));
-    end_position.set(source_x, source_y, Piece::NONE);
     end_position.set(capture_x, capture_y, Piece::NONE);
+    end_position.set(source_x, source_y, Piece::NONE);
     return end_position;
 }
 

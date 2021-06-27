@@ -1,6 +1,9 @@
 #ifndef _CONSTS_HPP_
 #define _CONSTS_HPP_
 
+#include <vector>
+#include <tuple>
+
 constexpr int NUM_ROWS = 8;
 constexpr int NUM_COLS = 8;
 constexpr int NUMBER_OF_REACHABLE_SQUARES = (NUM_ROWS * NUM_COLS) / 2;

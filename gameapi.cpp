@@ -1,149 +1,24 @@
 #include "gameapi.hpp"
 
-CheckersApi::CheckersApi() : board(BitBoard()), black_turn(true), jumps_available(false) {}
-
-bool is_opposite_color(const Piece source, const Piece other) {
-    if (source == Piece::BLACK || source == Piece::BLACK_KING)
-        return other == Piece::WHITE || other == Piece::WHITE_KING;
-
-    return (source == Piece::WHITE || source == Piece::WHITE_KING) && (other == Piece::BLACK || other == Piece::BLACK_KING);
+CheckersApi::CheckersApi(BitBoard board, bool black_turn) :
+    board(board), black_turn(black_turn), captures_available(false), all_moves(this->get_moves()) {
 }
+
 
 void CheckersApi::switch_turn() {
     this->black_turn = !this->black_turn;
 }
 
-bool CheckersApi::leagal_capture(const int source_x, const int source_y, const int capture_x, const int capture_y) {
-    if (Piece::NONE != this->board.get(2 * capture_x - source_x, 2 * capture_y - source_y))
-        return false;
-
-    const Piece captured = this->board.get(capture_x, capture_y);
-    const Piece source = this->board.get(source_x, source_y);
-
-    if (!is_opposite_color(source, captured))
-        return false;
-
-    if (this->black_turn) {
-        if (source == Piece::BLACK && capture_y - source_y == UP)
-            return true;
-
-        return source == Piece::BLACK_KING && std::abs(capture_y - source_y) == 1;
-    }
-    else {
-        if (source == Piece::WHITE && capture_y - source_y == DOWN)
-            return true;
-
-        return source == Piece::WHITE_KING && std::abs(capture_y - source_y) == 1;
-    }
+bool CheckersApi::get_black_turn() const {
+    return this->black_turn;
 }
 
-bool CheckersApi::leagal_move(const int source_x, const int source_y, const int dest_x, const int dest_y) {
-    if (this->jumps_available)
-        return false;
-
-    if (this->board.get(dest_x, dest_y) != Piece::NONE || std::abs(dest_x - source_x) != 1)
-        return false;
-
-    const Piece source = this->board.get(source_x, source_y);
-    if (this->black_turn)
-        return (source == Piece::BLACK && dest_y - source_y == UP) || (source == Piece::BLACK_KING && std::abs(dest_y - source_y) == 1);
-    else
-        return (source == Piece::WHITE && dest_y - source_y == DOWN) || (source == Piece::WHITE_KING && std::abs(dest_y - source_y) == 1);
+bool CheckersApi::is_black(const int x, const int y) const {
+    return this->get(x, y) == Piece::BLACK || this->get(x, y) == Piece::BLACK_KING;
 }
 
-bool CheckersApi::move(const int source_x, const int source_y, const int dest_x, const int dest_y) {
-    if (this->leagal_capture(source_x, source_y, dest_x, dest_y)) {
-        this->board = this->board.capture(source_x, source_y, dest_x, dest_y);
-        this->switch_turn();
-        return true;
-    }
-
-    if (this->leagal_move(source_x, source_y, dest_x, dest_y)) {
-        this->board = this->board.move(source_x, source_y, dest_x, dest_y);
-        this->switch_turn();
-        return true;
-    }
-
-    return false;
-}
-
-std::vector<std::pair<int, int>> get_candidate_locations(const int x, const int y) {
-    std::vector<std::pair<int, int>> candidates = { {x + 1, y + 1}, {x - 1, y + 1}, {x - 1, y - 1}, {x + 1, y - 1} };
-    std::vector<std::pair<int, int>> locations;
-
-    for (auto c : candidates) {
-        if (NUM_COLS > c.first && c.first >= 0 && NUM_ROWS > c.second && c.second >= 0)
-            locations.push_back(c);
-    }
-
-    return locations;
-}
-
-std::vector<BitBoard> CheckersApi::jumps(const int x, const int y) {
-    auto candidates = get_candidate_locations(x, y);
-    std::vector<BitBoard> jumps_positions;
-
-    for (auto dest : candidates) {
-        if (this->leagal_capture(x, y, dest.first, dest.second)) {
-            auto new_position = this->board.capture(x, y, dest.first, dest.second);
-            jumps_positions.push_back(new_position);
-        }
-    }
-
-    return jumps_positions;
-}
-
-std::vector<BitBoard> CheckersApi::moves(const int x, const int y) {
-    auto candidates = get_candidate_locations(x, y);
-    std::vector<BitBoard> moves;
-
-    for (auto dest : candidates) {
-        if (this->leagal_move(x, y, dest.first, dest.second)) {
-            auto new_position = this->board.move(x, y, dest.first, dest.second);
-            moves.push_back(new_position);
-        }
-    }
-
-    return moves;
-}
-
-std::vector<BitBoard> CheckersApi::moves() {
-    std::vector<BitBoard> possible_positions_jumps;
-    std::vector<BitBoard> possible_positions_moves;
-
-
-    if (this->black_turn) {
-        for (int x = 0; x < NUM_COLS; x++) {
-            for (int y = (x + 1) & 1; y < NUM_ROWS; y += 2) {
-                if (this->board.is_black(x, y)) {
-                    auto moves = this->moves(x, y);
-                    possible_positions_moves.reserve(possible_positions_moves.size() + moves.size());
-                    possible_positions_moves.insert(possible_positions_moves.end(), moves.begin(), moves.end());
-                    auto jumps = this->jumps(x, y);
-                    possible_positions_jumps.reserve(possible_positions_jumps.size() + jumps.size());
-                    possible_positions_jumps.insert(possible_positions_jumps.end(), jumps.begin(), jumps.end());
-                }
-            }
-        }
-    }
-    else {
-        for (int x = 0; x < NUM_COLS; x++) {
-            for (int y = (x + 1) & 1; y < NUM_ROWS; y += 2) {
-                if (this->board.is_white(x, y)) {
-                    auto moves = this->moves(x, y);
-                    possible_positions_moves.reserve(possible_positions_moves.size() + moves.size());
-                    possible_positions_moves.insert(possible_positions_moves.end(), moves.begin(), moves.end());
-                    auto jumps = this->jumps(x, y);
-                    possible_positions_jumps.reserve(possible_positions_jumps.size() + jumps.size());
-                    possible_positions_jumps.insert(possible_positions_jumps.end(), jumps.begin(), jumps.end());
-                }
-            }
-        }
-    }
-
-    if (possible_positions_jumps.size() > 0)
-        return possible_positions_jumps;
-    return possible_positions_moves;
+bool CheckersApi::is_white(const int x, const int y) const {
+    return this->get(x, y) == Piece::WHITE || this->get(x, y) == Piece::WHITE_KING;
 }
 
 std::ostream& operator<<(std::ostream& strm, std::vector<BitBoard>& list) {
@@ -153,11 +28,84 @@ std::ostream& operator<<(std::ostream& strm, std::vector<BitBoard>& list) {
     return strm;
 }
 
-int main(int argc, char** argv) {
-    CheckersApi api;
+py::object CheckersApi::move(const int source_x, const int source_y, const int dest_x, const int dest_y) {
+    BitBoard after_move = this->board.move(source_x, source_y, dest_x, dest_y);
+    BitBoard after_capture = this->board.capture(source_x, source_y, (dest_x + source_x) / 2, (dest_y + source_y) / 2);
 
-    // std::cout << api.board << std::endl;
-    auto x = api.moves();
-    std::cout << x << std::endl;
+    if (std::find(this->all_moves.begin(), this->all_moves.end(), after_capture) != this->all_moves.end()) {
+        this->board = after_capture;
+
+        auto continuations = after_capture.captures(this->get_black_turn(), dest_x, dest_y);
+        if (continuations.size() > 0) {
+            this->all_moves = continuations;
+            return py::make_tuple(dest_x, dest_y);
+        }
+
+        this->switch_turn();
+        this->all_moves = this->get_moves();
+
+        return py::make_tuple(dest_x, dest_y);
+    }
+
+    if (std::find(this->all_moves.begin(), this->all_moves.end(), after_move) != this->all_moves.end()) {
+        this->board = after_move;
+        this->switch_turn();
+        this->all_moves = this->get_moves();
+
+        return py::make_tuple(dest_x, dest_y);
+    }
+
+    return py::cast<py::none>(Py_None);
 }
 
+Piece CheckersApi::get(const int x, const int y) const {
+    if ((x & 1) == (y & 1))
+        return Piece::NONE;
+    return this->board.get(x, y);
+}
+
+std::vector<std::pair<int, int>> CheckersApi::possible_moves(const int x, const int y) const {
+    auto candidates = get_candidate_locations(x, y);
+    std::vector<std::pair<int, int>> possibilities;
+
+    if (this->get(x, y) != Piece::NONE) {
+        if (this->captures_available) {
+            for (auto [dest_x, dest_y] : candidates) {
+                if (this->board.leagal_capture(this->get_black_turn(), x, y, dest_x, dest_y))
+                    possibilities.emplace_back(2 * dest_x - x, 2 * dest_y - y);
+            }
+        }
+        else {
+            for (auto [dest_x, dest_y] : candidates) {
+                if (this->board.leagal_move(this->get_black_turn(), x, y, dest_x, dest_y))
+                    possibilities.emplace_back(dest_x, dest_y);
+            }
+        }
+    }
+
+    return possibilities;
+}
+
+std::vector<BitBoard> CheckersApi::get_moves() {
+    std::vector<BitBoard> possible_positions_captures;
+    std::vector<BitBoard> possible_positions_moves;
+    this->captures_available = false;
+
+    for (int x = 0; x < NUM_COLS; x++) {
+        for (int y = (x + 1) & 1; y < NUM_ROWS; y += 2) {
+            auto moves = this->board.moves(this->get_black_turn(), x, y);
+            possible_positions_moves.reserve(possible_positions_moves.size() + moves.size());
+            possible_positions_moves.insert(possible_positions_moves.end(), moves.begin(), moves.end());
+
+            auto captures = this->board.captures(this->get_black_turn(), x, y);
+            possible_positions_captures.reserve(possible_positions_captures.size() + captures.size());
+            possible_positions_captures.insert(possible_positions_captures.end(), captures.begin(), captures.end());
+        }
+    }
+
+    if (possible_positions_captures.size() > 0) {
+        this->captures_available = true;
+        return possible_positions_captures;
+    }
+    return possible_positions_moves;
+}
