@@ -21,6 +21,14 @@ bool CheckersApi::is_white(const int x, const int y) const {
     return this->get(x, y) == Piece::WHITE || this->get(x, y) == Piece::WHITE_KING;
 }
 
+bool CheckersApi::is_king(const int x, const int y) const {
+    return this->get(x, y) == Piece::WHITE_KING || this->get(x, y) == Piece::BLACK_KING;
+}
+
+bool CheckersApi::game_over() const {
+    return this->all_moves.size() == 0;
+}
+
 std::ostream& operator<<(std::ostream& strm, std::vector<BitBoard>& list) {
     for (auto b : list)
         strm << b << std::endl;
@@ -44,18 +52,17 @@ py::object CheckersApi::move(const int source_x, const int source_y, const int d
         this->switch_turn();
         this->all_moves = this->get_moves();
 
-        return py::make_tuple(dest_x, dest_y);
+        return py::cast<py::none>(Py_None);
     }
 
     if (std::find(this->all_moves.begin(), this->all_moves.end(), after_move) != this->all_moves.end()) {
         this->board = after_move;
         this->switch_turn();
         this->all_moves = this->get_moves();
-
-        return py::make_tuple(dest_x, dest_y);
+        return py::cast<py::none>(Py_None);
     }
 
-    return py::cast<py::none>(Py_None);
+    return py::make_tuple(dest_x, dest_y);
 }
 
 Piece CheckersApi::get(const int x, const int y) const {

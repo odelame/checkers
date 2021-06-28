@@ -27,6 +27,8 @@ public:
     bool get_black_turn() const;
     bool is_black(const int x, const int y) const;
     bool is_white(const int x, const int y) const;
+    bool is_king(const int x, const int y) const;
+    bool game_over() const;
     std::vector<std::pair<int, int>> possible_moves(const int x, const int y) const;
 };
 
@@ -47,26 +49,19 @@ PYBIND11_MODULE(checkers, handle) {
 
     py::class_<CheckersApi>(handle, "Api")
         .def(py::init<>())
-        .def("__getitem__", [](CheckersApi& self, py::tuple values) {
+        .def("is_white", &CheckersApi::is_white, py::arg("x"), py::arg("y"))
+        .def("is_black", &CheckersApi::is_black, py::arg("x"), py::arg("y"))
+        .def("is_king", &CheckersApi::is_king, py::arg("x"), py::arg("y"))
+        .def("moves", &CheckersApi::possible_moves, py::arg("x"), py::arg("y"))
+        .def("move", &CheckersApi::move, py::arg("source_x"), py::arg("source_y"), py::arg("dest_x"), py::arg("dest_y"))
+        .def_property_readonly("black_move", &CheckersApi::get_black_turn)
+        .def_property_readonly("game_over", &CheckersApi::game_over)
+        .def("__getitem__",
+            [](CheckersApi& self, py::tuple values) {
                 std::tuple<int, int> indexes = values.cast<std::tuple<int, int>>();
                 return self.get(std::get<0>(indexes), std::get<1>(indexes));
-            }, py::arg("tuple_index"))
-        .def_property_readonly("black_move", [](CheckersApi& self) {
-                return self.get_black_turn();
-            })
-        .def("is_white", [](CheckersApi& self, py::tuple values) {
-                std::tuple<int, int> indexes = values.cast<std::tuple<int, int>>();
-                return self.is_white(std::get<0>(indexes), std::get<1>(indexes));
-            }, py::arg("index_tuple"))
-        .def("is_black",  [](CheckersApi& self, py::tuple values) {
-                std::tuple<int, int> indexes = values.cast<std::tuple<int, int>>();
-                return self.is_black(std::get<0>(indexes), std::get<1>(indexes));
-            }, py::arg("index_tuple"))
-        .def("moves", [](CheckersApi& self, py::tuple values) {
-                std::tuple<int, int> indexes = values.cast<std::tuple<int, int>>();
-                return self.possible_moves(std::get<0>(indexes), std::get<1>(indexes));
-            }, py::arg("index_tuple"))
-        .def("move", &CheckersApi::move, py::arg("source_x"), py::arg("source_y"), py::arg("dest_x"), py::arg("dest_y"))
+            },
+            py::arg("index"))
         ;
 
 }

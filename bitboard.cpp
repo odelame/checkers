@@ -28,6 +28,10 @@ bool BitBoard::is_king(const int x, const int y) const {
     return this->kings[get_index(x, y)];
 }
 
+void BitBoard::set_king(const int x, const int y) {
+    this->kings[get_index(x, y)] = true;
+}
+
 bool in_bounds(const int index) {
     return 0 <= index && index < NUM_COLS;
 }
@@ -69,7 +73,7 @@ bool BitBoard::leagal_move(const bool black_turn, const int source_x, const int 
         (source == Piece::WHITE_KING && std::abs(dest_y - source_y) == 1);
 }
 
-std::vector<BitBoard> BitBoard::captures(const bool black_turn, const int x, const int y) {
+std::vector<BitBoard> BitBoard::captures(const bool black_turn, const int x, const int y) const {
     auto candidates = get_candidate_locations(x, y);
     std::vector<BitBoard> capture_positions;
 
@@ -83,7 +87,7 @@ std::vector<BitBoard> BitBoard::captures(const bool black_turn, const int x, con
     return capture_positions;
 }
 
-std::vector<BitBoard> BitBoard::moves(const bool black_turn, const int x, const int y) {
+std::vector<BitBoard> BitBoard::moves(const bool black_turn, const int x, const int y) const {
     auto candidates = get_candidate_locations(x, y);
     std::vector<BitBoard> moves;
 
@@ -148,13 +152,20 @@ void BitBoard::set(const int x, const int y, const Piece value) {
 BitBoard BitBoard::move(const int source_x, const int source_y, const int dest_x, const int dest_y) const {
     BitBoard end_position(*this);
     end_position.set(dest_x, dest_y, end_position.get(source_x, source_y));
+    if (0 == dest_y || NUM_ROWS == dest_y)
+        end_position.set_king(dest_x, dest_y);
     end_position.set(source_x, source_y, Piece::NONE);
     return end_position;
 }
 
 BitBoard BitBoard::capture(const int source_x, const int source_y, const int capture_x, const int capture_y) const {
     BitBoard end_position(*this);
-    end_position.set(2 * capture_x - source_x, 2 * capture_y - source_y, end_position.get(source_x, source_y));
+    const int dest_x = 2 * capture_x - source_x;
+    const int dest_y = 2 * capture_y - source_y;
+    end_position.set(dest_x, dest_y, end_position.get(source_x, source_y));
+    if (0 == dest_y || NUM_ROWS == dest_y)
+        end_position.set_king(dest_x, dest_y);
+
     end_position.set(capture_x, capture_y, Piece::NONE);
     end_position.set(source_x, source_y, Piece::NONE);
     return end_position;
