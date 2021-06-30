@@ -70,10 +70,11 @@ def display():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if None != selection:
                     selection = game_api.move(*selection, *select(*pygame.mouse.get_pos()))
+                    if None == selection and not game_api.game_over:
+                        game_api.play()
                 else:  
                     selection = select(*pygame.mouse.get_pos())
                              
-
         draw(WIN, game_api, selection)
         
         if game_api.game_over:
@@ -82,7 +83,7 @@ def display():
             else:
                 draw_msg("BLACK WINS!!")
             game_running = False   
-            
+          
         pygame.display.update()
 
     pygame.quit()

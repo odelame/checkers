@@ -1,9 +1,8 @@
 #include "gameapi.hpp"
 
 CheckersApi::CheckersApi(BitBoard board, bool black_turn) :
-    board(board), black_turn(black_turn), captures_available(false), all_moves(this->get_moves()) {
+    board(board), black_turn(black_turn), all_moves(this->board.moves(this->get_black_turn())) {
 }
-
 
 void CheckersApi::switch_turn() {
     this->black_turn = !this->black_turn;
@@ -29,11 +28,24 @@ bool CheckersApi::game_over() const {
     return this->all_moves.size() == 0;
 }
 
-std::ostream& operator<<(std::ostream& strm, std::vector<BitBoard>& list) {
-    for (auto b : list)
-        strm << b << std::endl;
+void CheckersApi::play() {
+    this->board = std::get<0>(eval::best_move(this->board, this->get_black_turn()));
+    this->switch_turn();
+    this->all_moves = this->board.moves(this->get_black_turn());
+}
 
-    return strm;
+bool CheckersApi::captures_available() const {
+    if (this->game_over())
+        return false;
+    BitBoard option = this->all_moves.front();
+    std::bitset black_magic = option ^ this->board;
+
+    int count = 0;
+    for (unsigned int i = 1; i < black_magic.size(); i++)
+        if (black_magic[i])
+            count++;
+
+    return count > 2;
 }
 
 py::object CheckersApi::move(const int source_x, const int source_y, const int dest_x, const int dest_y) {
@@ -50,7 +62,7 @@ py::object CheckersApi::move(const int source_x, const int source_y, const int d
         }
 
         this->switch_turn();
-        this->all_moves = this->get_moves();
+        this->all_moves = this->board.moves(this->get_black_turn());
 
         return py::cast<py::none>(Py_None);
     }
@@ -58,7 +70,7 @@ py::object CheckersApi::move(const int source_x, const int source_y, const int d
     if (std::find(this->all_moves.begin(), this->all_moves.end(), after_move) != this->all_moves.end()) {
         this->board = after_move;
         this->switch_turn();
-        this->all_moves = this->get_moves();
+        this->all_moves = this->board.moves(this->get_black_turn());
         return py::cast<py::none>(Py_None);
     }
 
@@ -76,10 +88,10 @@ std::vector<std::pair<int, int>> CheckersApi::possible_moves(const int x, const 
     std::vector<std::pair<int, int>> possibilities;
 
     if (this->get(x, y) != Piece::NONE) {
-        if (this->captures_available) {
+        if (this->captures_available()) {
             for (auto [dest_x, dest_y] : candidates) {
                 if (this->board.leagal_capture(this->get_black_turn(), x, y, dest_x, dest_y))
-                    possibilities.emplace_back(2 * dest_x - x, 2 * dest_y - y);
+                    possibilities.push_back(get_end_capture_pos(x, y, dest_x, dest_y));
             }
         }
         else {
@@ -91,28 +103,4 @@ std::vector<std::pair<int, int>> CheckersApi::possible_moves(const int x, const 
     }
 
     return possibilities;
-}
-
-std::vector<BitBoard> CheckersApi::get_moves() {
-    std::vector<BitBoard> possible_positions_captures;
-    std::vector<BitBoard> possible_positions_moves;
-    this->captures_available = false;
-
-    for (int x = 0; x < NUM_COLS; x++) {
-        for (int y = (x + 1) & 1; y < NUM_ROWS; y += 2) {
-            auto moves = this->board.moves(this->get_black_turn(), x, y);
-            possible_positions_moves.reserve(possible_positions_moves.size() + moves.size());
-            possible_positions_moves.insert(possible_positions_moves.end(), moves.begin(), moves.end());
-
-            auto captures = this->board.captures(this->get_black_turn(), x, y);
-            possible_positions_captures.reserve(possible_positions_captures.size() + captures.size());
-            possible_positions_captures.insert(possible_positions_captures.end(), captures.begin(), captures.end());
-        }
-    }
-
-    if (possible_positions_captures.size() > 0) {
-        this->captures_available = true;
-        return possible_positions_captures;
-    }
-    return possible_positions_moves;
 }

@@ -8,7 +8,9 @@
 #include "consts.hpp"
 #include <algorithm>
 #include <pybind11/stl.h>
+#include <pybind11/pybind11.h>
 #include "helpFuncs.hpp"
+#include "engine.hpp"
 
 namespace py = pybind11;
 
@@ -16,9 +18,7 @@ class CheckersApi {
 private:
     BitBoard board;
     bool black_turn;
-    bool captures_available;
     void switch_turn();
-    std::vector<BitBoard> get_moves();
     std::vector<BitBoard> all_moves;
 public:
     CheckersApi(BitBoard board = BitBoard(), bool black_turn = true);
@@ -29,7 +29,9 @@ public:
     bool is_white(const int x, const int y) const;
     bool is_king(const int x, const int y) const;
     bool game_over() const;
+    bool captures_available() const;
     std::vector<std::pair<int, int>> possible_moves(const int x, const int y) const;
+    void play();
 };
 
 
@@ -54,6 +56,7 @@ PYBIND11_MODULE(checkers, handle) {
         .def("is_king", &CheckersApi::is_king, py::arg("x"), py::arg("y"))
         .def("moves", &CheckersApi::possible_moves, py::arg("x"), py::arg("y"))
         .def("move", &CheckersApi::move, py::arg("source_x"), py::arg("source_y"), py::arg("dest_x"), py::arg("dest_y"))
+        .def("play", &CheckersApi::play)
         .def_property_readonly("black_move", &CheckersApi::get_black_turn)
         .def_property_readonly("game_over", &CheckersApi::game_over)
         .def("__getitem__",

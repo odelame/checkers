@@ -8,6 +8,10 @@ bool BitBoard::operator==(const BitBoard& other) const {
     return this->black_is_in == other.black_is_in && this->white_is_in == other.white_is_in && this->kings == other.kings;
 }
 
+std::bitset<NUMBER_OF_REACHABLE_SQUARES> BitBoard::operator^(const BitBoard& other) const {
+    return (this->black_is_in | this->white_is_in | this->kings) ^ (other.black_is_in | other.white_is_in | other.kings);
+}
+
 int get_index(const int x, const int y) {
     return (x >> 1) + (y << 2);
 }
@@ -36,8 +40,21 @@ bool in_bounds(const int index) {
     return 0 <= index && index < NUM_COLS;
 }
 
+short BitBoard::num_white() const {
+    return bit_count(this->white_is_in);
+}
+short BitBoard::num_black() const {
+    return bit_count(this->black_is_in);
+}
+short BitBoard::num_white_kings() const {
+    return bit_count(this->white_is_in & this->kings);
+}
+short BitBoard::num_black_kings() const {
+    return bit_count(this->black_is_in & this->kings);
+}
+
 bool BitBoard::leagal_capture(bool black_turn, const int source_x, const int source_y, const int capture_x, const int capture_y) const {
-    if (!in_bounds(2 * capture_x - source_x) || !in_bounds(2 * capture_y - source_y) || Piece::NONE != this->get(2 * capture_x - source_x, 2 * capture_y - source_y))
+    if (!in_bounds(get_end_capture_pos(source_x, capture_x)) || !in_bounds(get_end_capture_pos(source_y, capture_y)) || Piece::NONE != this->get(get_end_capture_pos(source_x, capture_x), get_end_capture_pos(source_y, capture_y)))
         return false;
 
     const Piece captured = this->get(capture_x, capture_y);
@@ -84,8 +101,7 @@ BitBoard BitBoard::move(const int source_x, const int source_y, const int dest_x
 
 BitBoard BitBoard::capture(const int source_x, const int source_y, const int capture_x, const int capture_y) const {
     BitBoard end_position(*this);
-    const int dest_x = 2 * capture_x - source_x;
-    const int dest_y = 2 * capture_y - source_y;
+    const auto [dest_x, dest_y] = get_end_capture_pos(source_x, source_y, capture_x, capture_y);
     end_position.set(dest_x, dest_y, end_position.get(source_x, source_y));
     if (0 == dest_y || NUM_ROWS - 1 == dest_y)
         end_position.set_king(dest_x, dest_y);
@@ -93,7 +109,6 @@ BitBoard BitBoard::capture(const int source_x, const int source_y, const int cap
     end_position.set(source_x, source_y, Piece::NONE);
     return end_position;
 }
-
 
 std::vector<BitBoard> BitBoard::captures(const bool black_turn, const int x, const int y) const {
     auto candidates = get_candidate_locations(x, y);
@@ -121,6 +136,33 @@ std::vector<BitBoard> BitBoard::moves(const bool black_turn, const int x, const 
     }
 
     return moves;
+}
+
+std::vector<BitBoard> BitBoard::captures(const bool black_turn) const {
+    std::vector<BitBoard> result;
+
+    iter_on_board([&result, this, black_turn](const int x, const int y) {
+        auto new_moves = this->captures(black_turn, x, y);
+        result.reserve(result.size() + new_moves.size());
+        result.insert(result.end(), new_moves.begin(), new_moves.end());
+        });
+
+    return result;
+}
+
+std::vector<BitBoard> BitBoard::moves(const bool black_turn) const {
+    std::vector<BitBoard> result = this->captures(black_turn);
+
+    if (result.size() > 0)
+        return result;
+
+    iter_on_board([&result, this, black_turn](const int x, const int y) {
+        auto new_moves = this->moves(black_turn, x, y);
+        result.reserve(result.size() + new_moves.size());
+        result.insert(result.end(), new_moves.begin(), new_moves.end());
+        });
+
+    return result;
 }
 
 Piece BitBoard::get(const int x, const int y) const {

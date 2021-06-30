@@ -5,9 +5,9 @@
 #include <bitset>
 #include <iomanip>
 #include "consts.hpp"
-#include "helpFuncs.hpp"
 #include <tuple>
 #include <vector>
+#include <algorithm>
 
 class BitBoard {
 private:
@@ -30,6 +30,11 @@ public:
     bool is_black(const int x, const int y) const;
     bool is_white(const int x, const int y) const;
 
+    short num_white() const;
+    short num_black() const;
+    short num_white_kings() const;
+    short num_black_kings() const;
+
     BitBoard move(const int source_x, const int source_y, const int dest_x, const int dest_y) const;
     BitBoard capture(const int source_x, const int source_y, const int dest_x, const int dest_y) const;
 
@@ -39,9 +44,17 @@ public:
     std::vector<BitBoard> moves(const bool black_turn, const int x, const int y) const;
     std::vector<BitBoard> captures(const bool black_turn, const int x, const int y) const;
 
+    std::vector<BitBoard> captures(const bool black_turn) const;
+    std::vector<BitBoard> moves(const bool black_turn) const;
+    std::vector<BitBoard> reachable(const bool black_turn) const;
+
+    std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator^(const BitBoard& other) const;
+
     bool operator==(const BitBoard& other) const;
     friend std::ostream& operator<<(std::ostream& strm, const BitBoard& board);
 };
+
+#include "helpFuncs.hpp"
 
 int get_index(const int x, const int y);
 std::pair<int, int> get_xy(const int index);
