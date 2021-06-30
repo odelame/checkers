@@ -26,6 +26,7 @@ namespace eval {
     short evaluate(BitBoard board);
     std::pair<BitBoard, short> best_move(BitBoard board, bool black_turn);
     std::vector<BitBoard> reachable(BitBoard board, const bool black_turn);
+    std::pair<BitBoard, short> evaluate_tree(TreeNode* head, const unsigned int tree_depth);
 }
 
 #endif // _ENGINE_HPP_

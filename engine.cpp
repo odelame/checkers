@@ -49,24 +49,6 @@ namespace eval {
         return result;
     }
 
-    short evaluate_level(std::vector<TreeNode>& level) {
-        for (auto& it : level)
-            it.eval = evaluate(it.board);
-
-        if (!level[0].black_turn) {
-            short min_eval = SHRT_MAX;
-            for (auto& it : level)
-                min_eval = std::min(min_eval, it.eval);
-            return min_eval;
-        }
-        else {
-            short max_eval = SHRT_MAX;
-            for (auto& it : level)
-                max_eval = std::max(max_eval, it.eval);
-            return max_eval;
-        }
-    }
-
     std::vector<TreeNode> expand(TreeNode* head) {
         std::vector<BitBoard> possibilities = reachable(head->board, head->black_turn);
         std::vector<TreeNode> result;
@@ -80,6 +62,12 @@ namespace eval {
     std::pair<BitBoard, short> evaluate_tree(TreeNode* head, const unsigned int tree_depth) {
         if (tree_depth == 0)
             return std::make_pair(head->board, evaluate(head->board));
+
+        if (head->children.size() == 0) {
+            if (head->black_turn)
+                return std::make_pair(head->board, SHRT_MAX);
+            return std::make_pair(head->board, SHRT_MIN);
+        }
 
 
         BitBoard min_board, max_board;
@@ -105,7 +93,7 @@ namespace eval {
     std::pair<BitBoard, short> best_move(BitBoard board, bool black_turn) {
         TreeNode head(board, black_turn);
         std::vector<TreeNode*> edges(1, &head);
-        constexpr unsigned int DEPTH = 6;
+        constexpr unsigned int DEPTH = 1;
 
         for (unsigned int i = 0; i < DEPTH; i++) {
             std::vector<TreeNode*> new_edges;
@@ -128,6 +116,7 @@ namespace eval {
 
             edges = new_edges;
         }
+
 
         return evaluate_tree(&head, DEPTH);
     }
