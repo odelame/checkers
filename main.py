@@ -6,6 +6,7 @@ environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 from consts import *
 from checkers import Api
+from argparse import ArgumentParser
 
 FPS = 60
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -53,9 +54,9 @@ def draw(win, checkers_api, selection):
             pygame.draw.circle(win, BLUE, (x * SQUARE_SIZE + SQUARE_SIZE //
                                             2, y * SQUARE_SIZE + SQUARE_SIZE // 2), SQUARE_SIZE // 4)
         
-def display():
+def display(depth=6):
     clock = pygame.time.Clock()
-    game_api = Api()
+    game_api = Api(depth)
     selection = None
 
     game_running = True
@@ -90,4 +91,7 @@ def display():
 
 
 if __name__ == '__main__':
-    display()
+    parser = ArgumentParser()
+    parser.add_argument("-d", "--depth", action="store",default=6)
+    args = parser.parse_args()
+    display(int(args.depth))

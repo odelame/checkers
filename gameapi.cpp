@@ -1,7 +1,7 @@
 #include "gameapi.hpp"
 
-CheckersApi::CheckersApi(BitBoard board, bool black_turn) :
-    board(board), black_turn(black_turn), all_moves(this->board.moves(this->get_black_turn())) {
+CheckersApi::CheckersApi(const unsigned int depth, BitBoard board, bool black_turn) :
+    depth(depth), board(board), black_turn(black_turn), all_moves(this->board.moves(this->get_black_turn())) {
 }
 
 void CheckersApi::switch_turn() {
@@ -29,7 +29,7 @@ bool CheckersApi::game_over() const {
 }
 
 void CheckersApi::play() {
-    this->board = std::get<0>(eval::best_move(this->board, this->get_black_turn()));
+    this->board = std::get<0>(eval::best_move(this->board, this->get_black_turn(), this->depth));
     this->switch_turn();
     this->all_moves = this->board.moves(this->get_black_turn());
 }
@@ -103,4 +103,42 @@ std::vector<std::pair<int, int>> CheckersApi::possible_moves(const int x, const 
     }
 
     return possibilities;
+}
+
+
+
+
+PYBIND11_MODULE(checkers, handle) {
+    handle.doc() =
+        "Basic checkers api to handle the checkers game\n"
+        "CheckersApi.CheckersApi => constructor for the api.\n"
+        "api.move() -> bool, checks if a move is leagal, if so plays it.\n";
+
+    py::enum_<Piece>(handle, "Piece")
+        .value("NONE", Piece::NONE)
+        .value("BLACK", Piece::BLACK)
+        .value("WHITE", Piece::WHITE)
+        .value("BLACK_KING", Piece::BLACK_KING)
+        .value("WHITE_KING", Piece::WHITE_KING)
+        ;
+
+    py::class_<CheckersApi>(handle, "Api")
+        .def(py::init<unsigned int>())
+        .def(py::init<>())
+        .def("is_white", &CheckersApi::is_white, py::arg("x"), py::arg("y"))
+        .def("is_black", &CheckersApi::is_black, py::arg("x"), py::arg("y"))
+        .def("is_king", &CheckersApi::is_king, py::arg("x"), py::arg("y"))
+        .def("moves", &CheckersApi::possible_moves, py::arg("x"), py::arg("y"))
+        .def("move", &CheckersApi::move, py::arg("source_x"), py::arg("source_y"), py::arg("dest_x"), py::arg("dest_y"))
+        .def("play", &CheckersApi::play)
+        .def_property_readonly("black_move", &CheckersApi::get_black_turn)
+        .def_property_readonly("game_over", &CheckersApi::game_over)
+        .def("__getitem__",
+            [](CheckersApi& self, py::tuple values) {
+                std::tuple<int, int> indexes = values.cast<std::tuple<int, int>>();
+                return self.get(std::get<0>(indexes), std::get<1>(indexes));
+            },
+            py::arg("index"))
+        ;
+
 }

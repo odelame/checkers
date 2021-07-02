@@ -2,16 +2,16 @@ INC = $(shell python3 -m pybind11 --includes)
 SUFFIX = $(shell python3-config --extension-suffix)
 LINK.o = $(LINK.cpp)
 CPP=c++
-CPPFLAGS = -std=c++20 -Wall -pedantic -Ofast -fPIC 
-LIB = -ltbb -pthread
+CPPFLAGS = -std=c++20 -Wall -pedantic -O -fPIC 
+LIB = -ltbb
 
 checkers: bitboard.o	gameapi.o 	helpFuncs.o 	engine.o 	timer.o
 	$(CPP) $(CPPFLAGS) $(INC) $^ -shared -o $@$(SUFFIX) $(LIB)
 	
-engine.o: engine.cpp 	engine.hpp
+engine.o: engine.cpp 	engine.hpp 	helpFuncs.o
 	$(CPP) $(CPPFLAGS) $(INC) $^ -c
 
-gameapi.o: gameapi.hpp	gameapi.cpp
+gameapi.o: gameapi.hpp	gameapi.cpp engine.o	bitboard.o 	helpFuncs.o
 	$(CPP) $(CPPFLAGS) $(INC) $^ -c
 	
 bitboard.o: bitboard.hpp	bitboard.cpp

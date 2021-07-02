@@ -90,12 +90,11 @@ namespace eval {
         return std::make_pair(max_board, max_eval);
     }
 
-    std::pair<BitBoard, short> best_move(BitBoard board, bool black_turn) {
+    std::pair<BitBoard, short> best_move(BitBoard board, bool black_turn, const unsigned int depth) {
         TreeNode head(board, black_turn);
         std::vector<TreeNode*> edges(1, &head);
-        constexpr unsigned int DEPTH = 1;
 
-        for (unsigned int i = 0; i < DEPTH; i++) {
+        for (unsigned int i = 0; i < depth; i++) {
             std::vector<TreeNode*> new_edges;
             std::mutex m;
 
@@ -118,7 +117,7 @@ namespace eval {
         }
 
 
-        return evaluate_tree(&head, DEPTH);
+        return evaluate_tree(&head, depth);
     }
 }
 
