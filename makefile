@@ -8,10 +8,10 @@ LIB = -ltbb
 checkers: bitboard.o	gameapi.o 	helpFuncs.o 	engine.o 	timer.o
 	$(CPP) $(CPPFLAGS) $(INC) $^ -shared -o $@$(SUFFIX) $(LIB)
 	
-engine.o: engine.cpp 	engine.hpp 	helpFuncs.o
+engine.o: engine.cpp 	engine.hpp 	helpFuncs.hpp
 	$(CPP) $(CPPFLAGS) $(INC) $^ -c
 
-gameapi.o: gameapi.hpp	gameapi.cpp engine.o	bitboard.o 	helpFuncs.o
+gameapi.o: gameapi.hpp	gameapi.cpp engine.hpp	bitboard.hpp 	helpFuncs.hpp
 	$(CPP) $(CPPFLAGS) $(INC) $^ -c
 	
 bitboard.o: bitboard.hpp	bitboard.cpp

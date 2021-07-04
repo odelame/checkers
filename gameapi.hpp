@@ -16,11 +16,11 @@ namespace py = pybind11;
 
 class CheckersApi {
 private:
+    const unsigned int depth;
     BitBoard board;
     bool black_turn;
     void switch_turn();
     std::vector<BitBoard> all_moves;
-    const unsigned int depth;
 public:
     CheckersApi(const unsigned int depth = 6, BitBoard board = BitBoard(), bool black_turn = true);
     py::object move(const int source_x, const int source_y, const int dest_x, const int dest_y);

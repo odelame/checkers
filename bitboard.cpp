@@ -130,8 +130,7 @@ std::vector<BitBoard> BitBoard::moves(const bool black_turn, const int x, const 
 
     for (auto dest : candidates) {
         if (this->leagal_move(black_turn, x, y, dest.first, dest.second)) {
-            auto new_position = this->move(x, y, dest.first, dest.second);
-            moves.push_back(new_position);
+            moves.push_back(this->move(x, y, dest.first, dest.second));
         }
     }
 

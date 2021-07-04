@@ -8,6 +8,8 @@
 #include <iostream>
 #include "bitboard.hpp"
 #include <bitset>
+#include <algorithm>
+#include <execution>
 
 std::vector<std::pair<int, int>> get_candidate_locations(const int x, const int y);
 bool is_opposite_color(Piece source, Piece other);

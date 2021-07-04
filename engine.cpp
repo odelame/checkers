@@ -11,19 +11,17 @@ namespace eval {
     std::vector<BitBoard> reachable(BitBoard board, const bool black_turn) {
         std::vector<BitBoard> result;
 
-        if (board.captures(black_turn).size() == 0)
-            return board.moves(black_turn);
-
         iter_on_board([&result, &board, black_turn](const int x, const int y) {
-            std::vector<BitBoard> reached = { board };
-            std::vector<std::pair<int, int>> coords = { {x, y} };
+            std::vector<BitBoard> reached_jumps = { board };
+            std::vector<std::pair<int, int>> jump_coords = { {x, y} };
+            std::mutex lock;
 
-            do {
-                std::vector<BitBoard> new_reached;
-                std::vector<std::pair<int, int>> new_coords;
+            while (jump_coords.size()) {
+                std::vector<BitBoard> new_reached_jumps;
+                std::vector<std::pair<int, int>> new_coords_jumps;
 
-                for (auto [coords, current_position] : boost::combine(coords, reached)) {
-                    auto [source_x, source_y] = coords;
+                for (auto [jump_coords, current_position] : boost::combine(jump_coords, reached_jumps)) {
+                    auto [source_x, source_y] = jump_coords;
                     auto candidates = get_candidate_locations(source_x, source_y);
 
                     bool captured = false;
@@ -31,93 +29,101 @@ namespace eval {
                         auto [capture_x, capture_y] = candidate;
 
                         if (current_position.leagal_capture(black_turn, source_x, source_y, capture_x, capture_y)) {
-                            new_reached.push_back(current_position.capture(source_x, source_y, capture_x, capture_y));
-                            new_coords.push_back(get_end_capture_pos(source_x, source_y, capture_x, capture_y));
+                            new_reached_jumps.push_back(current_position.capture(source_x, source_y, capture_x, capture_y));
+                            new_coords_jumps.push_back(get_end_capture_pos(source_x, source_y, capture_x, capture_y));
                             captured = true;
                         }
                     }
+
                     if (!captured && current_position != board)
                         result.push_back(current_position);
+
                 }
 
-                reached = std::move(new_reached);
-                coords = std::move(new_coords);
+                reached_jumps = std::move(new_reached_jumps);
+                jump_coords = std::move(new_coords_jumps);
 
-            } while (coords.size() != 0);
+            }
+            });
+
+        if (result.size() != 0)
+            return result;
+
+        iter_on_board([&result, &board, black_turn](const int x, const int y) {
+            auto new_moves = board.moves(black_turn, x, y);
+            result.reserve(result.size() + new_moves.size());
+            result.insert(result.end(), new_moves.begin(), new_moves.end());
             });
 
         return result;
     }
 
-    std::vector<TreeNode> expand(TreeNode* head) {
-        std::vector<BitBoard> possibilities = reachable(head->board, head->black_turn);
+    std::vector<TreeNode> expand(TreeNode* root) {
+        std::vector<BitBoard> possibilities = reachable(root->board, root->black_turn);
         std::vector<TreeNode> result;
 
         for (auto& position : possibilities)
-            result.emplace_back(position, !head->black_turn, head);
+            result.emplace_back(position, !root->black_turn, root);
 
         return result;
     }
 
-    std::pair<BitBoard, short> evaluate_tree(TreeNode* head, const unsigned int tree_depth) {
-        if (tree_depth == 0)
-            return std::make_pair(head->board, evaluate(head->board));
+    short expand_tree_ab(TreeNode& root, const unsigned int depth, short alpha, short beta) {
+        if (depth == 0)
+            return evaluate(root.board);
 
-        if (head->children.size() == 0) {
-            if (head->black_turn)
-                return std::make_pair(head->board, SHRT_MAX);
-            return std::make_pair(head->board, SHRT_MIN);
+        root.children = expand(&root);
+
+        bool minimizing = root.black_turn;
+        short eval;
+
+        if (minimizing) {
+            eval = SHRT_MAX;
+            if (root.children.size() == 0) {
+                root.eval = eval;
+                return eval;
+            }
+
+            for (auto& child : root.children) {
+                eval = std::min(eval, expand_tree_ab(child, depth - 1, alpha, beta));
+                if (eval <= alpha)
+                    break;
+
+                beta = std::min(beta, eval);
+            }
+        }
+        else {
+            eval = SHRT_MIN;
+            if (root.children.size() == 0) {
+                root.eval = eval;
+                return eval;
+            }
+
+            for (auto& child : root.children) {
+                eval = std::max(eval, expand_tree_ab(child, depth - 1, alpha, beta));
+
+                if (eval >= beta)
+                    break;
+
+                alpha = std::max(alpha, eval);
+            }
         }
 
-
-        BitBoard min_board, max_board;
-        short min_eval = SHRT_MAX, max_eval = SHRT_MIN;
-
-        for (auto& child : head->children) {
-            auto [temp_board, eval] = evaluate_tree(&child, tree_depth - 1);
-            if (eval < min_eval) {
-                min_eval = eval;
-                min_board = child.board;
-            }
-            if (eval > max_eval) {
-                max_eval = eval;
-                max_board = child.board;
-            }
-        }
-
-        if (head->black_turn)
-            return std::make_pair(min_board, min_eval);
-        return std::make_pair(max_board, max_eval);
+        root.eval = eval;
+        return eval;
     }
 
     std::pair<BitBoard, short> best_move(BitBoard board, bool black_turn, const unsigned int depth) {
-        TreeNode head(board, black_turn);
-        std::vector<TreeNode*> edges(1, &head);
+        Timer t(std::cout);
+        TreeNode root(board, black_turn);
+        short evaluation = expand_tree_ab(root, depth);
 
-        for (unsigned int i = 0; i < depth; i++) {
-            std::vector<TreeNode*> new_edges;
-            std::mutex m;
-
-            std::for_each(std::execution::par, edges.begin(), edges.end(), [&new_edges, &m](TreeNode* node) {
-                node->children = expand(node);
-
-                if (node->black_turn)
-                    node->eval = SHRT_MAX;
-                else
-                    node->eval = SHRT_MIN;
-
-                m.lock();
-                new_edges.reserve(new_edges.size() + node->children.size());
-                for (auto& child : node->children)
-                    new_edges.push_back(&child);
-                m.unlock();
-                });
-
-            edges = new_edges;
+        for (auto& child : root.children) {
+            if (child.eval == evaluation)
+                return std::pair<BitBoard, short>(child.board, evaluation);
         }
-
-
-        return evaluate_tree(&head, depth);
+        // unreachable
+        return std::pair(board, 0);
     }
 }
 
