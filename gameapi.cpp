@@ -29,7 +29,7 @@ bool CheckersApi::game_over() const {
 }
 
 void CheckersApi::play() {
-    this->board = std::get<0>(eval::best_move(this->board, this->get_black_turn(), this->depth));
+    this->board = std::get<0>(engine::best_move(this->board, this->get_black_turn(), this->depth));
     this->switch_turn();
     this->all_moves = this->board.moves(this->get_black_turn());
 }

@@ -8,24 +8,24 @@
 #include <list>
 #include <climits>
 #include <boost/range/combine.hpp>
-#include <execution>
-#include <mutex>
-#include "timer/timer.hpp"
+#include <sstream>
+
 
 struct TreeNode {
     const BitBoard board;
     const bool black_turn;
     TreeNode* father;
     short eval;
-    std::vector<TreeNode> children;
+    std::vector<TreeNode> children = {};
     TreeNode(const BitBoard state, const bool black_turn = true, TreeNode* father = nullptr, short eval = 0);
-    short get_eval();
-    BitBoard get_board();
+    void expand();
+    short evaluate();
 };
 
-namespace eval {
+namespace engine {
     short evaluate(BitBoard board);
     std::pair<BitBoard, short> best_move(BitBoard board, bool black_turn, const unsigned int depth = 4);
+    std::vector<TreeNode> expand(TreeNode* root);
     std::vector<BitBoard> reachable(BitBoard board, const bool black_turn);
     short expand_tree_ab(TreeNode& root, const unsigned int depth, short alpha = SHRT_MIN, short beta = SHRT_MAX);
 }

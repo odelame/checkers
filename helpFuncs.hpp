@@ -22,7 +22,7 @@ template<unsigned long N>
 short bit_count(std::bitset<N> bits) {
     short count = 0;
 
-    for (unsigned int i = 1; i <= N; i++) {
+    for (unsigned int i = 0; i < N; i++) {
         if (bits[i])
             count++;
     }

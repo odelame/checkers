@@ -66,7 +66,8 @@ def draw(win, checkers_api, selection, rotation=False):
             pygame.draw.circle(win, BLUE, pos, SQUARE_SIZE // 4)
         
 def display(depth=6, color="black"):
-    rotation = (color == "white")
+    rotation = False
+   # rotation = (color == "white")
     clock = pygame.time.Clock()
     game_api = Api(depth)
     selection = None
