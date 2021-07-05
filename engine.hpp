@@ -13,21 +13,20 @@
 
 struct TreeNode {
     const BitBoard board;
-    const bool black_turn;
     TreeNode* father;
     short eval;
     std::vector<TreeNode> children = {};
-    TreeNode(const BitBoard state, const bool black_turn = true, TreeNode* father = nullptr, short eval = 0);
-    void expand();
+    TreeNode(const BitBoard state, TreeNode* father = nullptr, short eval = 0);
+    TreeNode(const TreeNode& other);
+    void expand(bool black_turn);
     short evaluate();
+    //TreeNode& operator=(const TreeNode& other);
 };
 
+std::ostream& operator<<(std::ostream& strm, TreeNode& root);
 namespace engine {
-    short evaluate(BitBoard board);
-    std::pair<BitBoard, short> best_move(BitBoard board, bool black_turn, const unsigned int depth = 4);
-    std::vector<TreeNode> expand(TreeNode* root);
-    std::vector<BitBoard> reachable(BitBoard board, const bool black_turn);
-    short expand_tree_ab(TreeNode& root, const unsigned int depth, short alpha = SHRT_MIN, short beta = SHRT_MAX);
+    std::pair<BitBoard, short> best_move(BitBoard board, bool black_turn, const unsigned int depth = 6);
+    short alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigned int depth = 6);
 }
 
 #endif // _ENGINE_HPP_
