@@ -12,28 +12,39 @@ std::bitset<NUMBER_OF_REACHABLE_SQUARES> BitBoard::operator^(const BitBoard& oth
     return (this->black_is_in | this->white_is_in | this->kings) ^ (other.black_is_in | other.white_is_in | other.kings);
 }
 
-int get_index(const int x, const int y) {
-    return (x >> 1) + (y << 2);
+std::bitset<NUMBER_OF_REACHABLE_SQUARES> BitBoard::operator&(const BitBoard& other) const {
+    return (this->black_is_in | this->white_is_in | this->kings) & (other.black_is_in | other.white_is_in | other.kings);
 }
 
-std::pair<int, int> get_xy(const int index) {
-    return std::make_pair<int, int>(index & ((NUM_COLS - 1) >> 1), index >> 2);
+std::bitset<NUMBER_OF_REACHABLE_SQUARES> BitBoard::operator^(std::bitset<NUMBER_OF_REACHABLE_SQUARES> other) const {
+    return (this->black_is_in | this->white_is_in | this->kings) ^ other;
+}
+
+std::bitset<NUMBER_OF_REACHABLE_SQUARES> BitBoard::operator&(std::bitset<NUMBER_OF_REACHABLE_SQUARES> other) const {
+    return (this->black_is_in | this->white_is_in | this->kings) & other;
+}
+
+std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator^(std::bitset<NUMBER_OF_REACHABLE_SQUARES> bits, const BitBoard& board) {
+    return board ^ bits;
+}
+std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator&(std::bitset<NUMBER_OF_REACHABLE_SQUARES> bits, const BitBoard& board) {
+    return board & bits;
 }
 
 bool BitBoard::is_black(const int x, const int y) const {
-    return this->black_is_in[get_index(x, y)];
+    return this->black_is_in[get_board_index(x, y)];
 }
 
 bool BitBoard::is_white(const int x, const int y) const {
-    return this->white_is_in[get_index(x, y)];
+    return this->white_is_in[get_board_index(x, y)];
 }
 
 bool BitBoard::is_king(const int x, const int y) const {
-    return this->kings[get_index(x, y)];
+    return this->kings[get_board_index(x, y)];
 }
 
 void BitBoard::set_king(const int x, const int y) {
-    this->kings[get_index(x, y)] = true;
+    this->kings[get_board_index(x, y)] = true;
 }
 
 bool in_bounds(const int index) {
@@ -181,7 +192,7 @@ Piece BitBoard::get(const int x, const int y) const {
 }
 
 void BitBoard::set(const int x, const int y, const Piece value) {
-    int index = get_index(x, y);
+    int index = get_board_index(x, y);
 
     switch (value) {
     case Piece::NONE:

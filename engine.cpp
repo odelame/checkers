@@ -1,7 +1,5 @@
 #include "engine.hpp"
 
-#define std ::std
-
 TreeNode::TreeNode(const BitBoard state, TreeNode* father, short eval) :
     board{ state }, father{ father }, eval{ eval } {}
 
@@ -154,6 +152,9 @@ namespace engine {
                     node->eval = SHRT_MIN;
 
                 if (node->children.size() == 0) {
+                    if (level == 0)
+                        break;
+
                     // father is maximize, this node is winning for father
                     if (minimize)
                         node->father->eval = SHRT_MAX;
@@ -216,13 +217,32 @@ namespace engine {
     }
 
     std::pair<BitBoard, short> best_move(BitBoard board, bool black_turn, const unsigned int depth) {
+        Timer t(std::cout);
         TreeNode root(board);
-        short evaluation = alpha_beta_analysis(&root, black_turn, depth);
-        std::cout << evaluation << std::endl;
+        root.expand(black_turn);
+        std::mutex lock;
+        short eval;
+        if (black_turn)
+            eval = SHRT_MAX;
+        else
+            eval = SHRT_MIN;
 
+        // optimize with parallel processing
+        std::for_each(std::execution::par, root.children.begin(), root.children.end(), [&lock, &eval, black_turn, depth](TreeNode& root) {
+            short temp_eval = alpha_beta_analysis(&root, !black_turn, depth - 1);
+            lock.lock();
+            if (black_turn)
+                eval = std::min(eval, temp_eval);
+            else
+                eval = std::max(eval, temp_eval);
+
+            lock.unlock();
+            });
+
+        std::cout << eval << std::endl;
         for (auto& child : root.children) {
-            if (child.eval == evaluation)
-                return std::pair<BitBoard, short>(child.board, evaluation);
+            if (child.eval == eval)
+                return std::pair<BitBoard, short>(child.board, eval);
         }
 
         // unreachable

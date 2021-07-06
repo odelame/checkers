@@ -34,6 +34,18 @@ void CheckersApi::play() {
     this->all_moves = this->board.moves(this->get_black_turn());
 }
 
+std::pair<std::pair<int, int>, std::pair<int, int>> CheckersApi::best_move() const {
+    BitBoard next_best = std::get<0>(engine::best_move(this->board, this->get_black_turn(), this->depth));
+    std::bitset<NUMBER_OF_REACHABLE_SQUARES> source = (this->board ^ next_best) & this->board;
+    std::bitset<NUMBER_OF_REACHABLE_SQUARES> end = next_best & (this->board ^ next_best);
+
+    return std::pair(board_index_to_xy(get_bit_num(source)), board_index_to_xy(get_bit_num(end)));
+}
+
+std::pair<int, int> CheckersApi::hint() const {
+    return this->best_move().first;
+}
+
 bool CheckersApi::captures_available() const {
     if (this->game_over())
         return false;
@@ -131,6 +143,8 @@ PYBIND11_MODULE(checkers, handle) {
         .def("moves", &CheckersApi::possible_moves, py::arg("x"), py::arg("y"))
         .def("move", &CheckersApi::move, py::arg("source_x"), py::arg("source_y"), py::arg("dest_x"), py::arg("dest_y"))
         .def("play", &CheckersApi::play)
+        .def("hint", &CheckersApi::hint)
+        .def("best_move", &CheckersApi::best_move)
         .def_property_readonly("black_move", &CheckersApi::get_black_turn)
         .def_property_readonly("game_over", &CheckersApi::game_over)
         .def("__getitem__",

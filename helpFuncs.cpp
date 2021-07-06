@@ -41,3 +41,11 @@ int get_end_capture_pos(const int source, const int capture) {
 std::pair<int, int> get_end_capture_pos(const int source_x, const int source_y, const int capture_x, const int capture_y) {
     return std::make_pair(get_end_capture_pos(source_x, capture_x), get_end_capture_pos(source_y, capture_y));
 }
+
+int get_board_index(const int x, const int y) {
+    return (x >> 1) + (y << 2);
+}
+
+std::pair<int, int> board_index_to_xy(const int index) {
+    return std::make_pair<int, int>(((index & 3) << 1) | (((index >> 2) ^ 1) & 1), index >> 2);
+}

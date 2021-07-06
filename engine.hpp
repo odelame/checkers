@@ -9,6 +9,10 @@
 #include <climits>
 #include <boost/range/combine.hpp>
 #include <sstream>
+#include <mutex>
+#include <execution>
+#include <algorithm>
+#include "timer.hpp"
 
 
 struct TreeNode {

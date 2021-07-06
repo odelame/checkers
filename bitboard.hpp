@@ -49,15 +49,21 @@ public:
     std::vector<BitBoard> reachable(const bool black_turn) const;
 
     std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator^(const BitBoard& other) const;
+    std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator&(const BitBoard& other) const;
+    std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator^(std::bitset<NUMBER_OF_REACHABLE_SQUARES> other) const;
+    std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator&(std::bitset<NUMBER_OF_REACHABLE_SQUARES> other) const;
+
 
     bool operator==(const BitBoard& other) const;
     friend std::ostream& operator<<(std::ostream& strm, const BitBoard& board);
 };
 
-#include "helpFuncs.hpp"
+std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator^(std::bitset<NUMBER_OF_REACHABLE_SQUARES> bits, const BitBoard& board);
+std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator&(std::bitset<NUMBER_OF_REACHABLE_SQUARES> bits, const BitBoard& board);
 
-int get_index(const int x, const int y);
-std::pair<int, int> get_xy(const int index);
+
+
+#include "helpFuncs.hpp"
 
 std::ostream& operator<<(std::ostream& strm, const BitBoard& board);
 std::ostream& operator<<(std::ostream& strm, Piece piece);
