@@ -21,9 +21,7 @@ void TreeNode::expand(bool black_turn) {
                 auto candidates = get_candidate_locations(source_x, source_y);
 
                 bool captured = false;
-                for (auto candidate : candidates) {
-                    auto [capture_x, capture_y] = candidate;
-
+                for (auto [capture_x, capture_y] : candidates) {
                     if (current_position.leagal_capture(black_turn, source_x, source_y, capture_x, capture_y)) {
                         new_reached_jumps.push_back(current_position.capture(source_x, source_y, capture_x, capture_y));
                         new_coords_jumps.push_back(get_end_capture_pos(source_x, source_y, capture_x, capture_y));
@@ -66,14 +64,15 @@ short TreeNode::evaluate() {
         }
     }
 
-    this->eval <<= 2;
+    this->eval <<= 1;
 
     // Sides of the board are worth more because cannot be taken
     for (int y = 1; y < NUM_ROWS; y += 2) {
-        this->eval += (board.get(0, y) == Piece::WHITE) + (board.get(0, y) == Piece::WHITE_KING)
-            - (board.get(0, y) == Piece::BLACK) - (board.get(0, y) == Piece::BLACK_KING);
-        this->eval += (board.get(NUM_COLS - 1, y) == Piece::WHITE) + (board.get(NUM_COLS - 1, y) == Piece::WHITE_KING)
-            - (board.get(NUM_COLS - 1, y) == Piece::BLACK) - (board.get(NUM_COLS - 1, y) == Piece::BLACK_KING);
+        this->eval += board.is_white(0, y) - board.is_black(0, y);
+        this->eval += board.is_white(NUM_COLS - 1, y - 1) - board.is_black(NUM_COLS - 1, y - 1);
+
+        this->eval += board.is_white(y, 0) - board.is_black(y, 0);
+        this->eval += board.is_white(y - 1, NUM_ROWS - 1) - board.is_black(y - 1, NUM_ROWS - 1);
     }
 
     return this->eval;
@@ -235,7 +234,6 @@ namespace engine {
                 eval = std::min(eval, temp_eval);
             else
                 eval = std::max(eval, temp_eval);
-
             lock.unlock();
             });
 

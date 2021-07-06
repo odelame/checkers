@@ -33,7 +33,7 @@ public:
     bool captures_available() const;
     std::vector<std::pair<int, int>> possible_moves(const int x, const int y) const;
     void play();
-    std::pair<std::pair<int, int>, std::pair<int, int>> best_move() const;
+    std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> best_move() const;
     std::pair<int, int> hint() const;
 };
 

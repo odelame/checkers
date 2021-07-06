@@ -29,6 +29,10 @@ public:
     bool is_king(const int x, const int y) const;
     bool is_black(const int x, const int y) const;
     bool is_white(const int x, const int y) const;
+    bool is_black(const std::pair<const int, const int> coords) const;
+    bool is_white(const std::pair<const int, const int> coords) const;
+    bool is_king(const std::pair<const int, const int> coords) const;
+    void set_king(const std::pair<const int, const int> coords);
 
     short num_white() const;
     short num_black() const;

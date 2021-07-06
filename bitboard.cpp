@@ -47,6 +47,22 @@ void BitBoard::set_king(const int x, const int y) {
     this->kings[get_board_index(x, y)] = true;
 }
 
+bool BitBoard::is_black(const std::pair<const int, const int> coords) const {
+    return this->is_black(coords.first, coords.second);
+}
+
+bool BitBoard::is_white(const std::pair<const int, const int> coords) const {
+    return this->is_white(coords.first, coords.second);
+}
+
+bool BitBoard::is_king(const std::pair<const int, const int> coords) const {
+    return this->is_king(coords.first, coords.second);
+}
+
+void BitBoard::set_king(const std::pair<const int, const int> coords) {
+    this->set_king(coords.first, coords.second);
+}
+
 bool in_bounds(const int index) {
     return 0 <= index && index < NUM_COLS;
 }
