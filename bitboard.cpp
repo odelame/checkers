@@ -8,6 +8,13 @@ bool BitBoard::operator==(const BitBoard& other) const {
     return this->black_is_in == other.black_is_in && this->white_is_in == other.white_is_in && this->kings == other.kings;
 }
 
+std::size_t BitBoard::hasher::operator()(const BitBoard& board) const {
+    std::size_t seed = (std::size_t)board.black_is_in.to_ulong();
+    seed |= (std::size_t)board.white_is_in.to_ulong() << (sizeof(std::size_t) * 8 - sizeof(board.white_is_in) * 8);
+    boost::hash_combine(seed, board.kings.to_ulong() << (sizeof(std::size_t) * 4 - sizeof(board.kings)));
+    return seed;
+}
+
 std::bitset<NUMBER_OF_REACHABLE_SQUARES> BitBoard::operator^(const BitBoard& other) const {
     return (this->black_is_in | this->white_is_in | this->kings) ^ (other.black_is_in | other.white_is_in | other.kings);
 }
@@ -68,16 +75,16 @@ bool in_bounds(const int index) {
 }
 
 short BitBoard::num_white() const {
-    return bit_count(this->white_is_in);
+    return this->white_is_in.count();
 }
 short BitBoard::num_black() const {
-    return bit_count(this->black_is_in);
+    return this->black_is_in.count();
 }
 short BitBoard::num_white_kings() const {
-    return bit_count(this->white_is_in & this->kings);
+    return (this->white_is_in & this->kings).count();
 }
 short BitBoard::num_black_kings() const {
-    return bit_count(this->black_is_in & this->kings);
+    return (this->black_is_in & this->kings).count();
 }
 
 bool BitBoard::leagal_capture(bool black_turn, const int source_x, const int source_y, const int capture_x, const int capture_y) const {

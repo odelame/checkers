@@ -8,6 +8,7 @@ constexpr int NUM_ROWS = 8;
 constexpr int NUM_COLS = 8;
 constexpr int NUMBER_OF_REACHABLE_SQUARES = (NUM_ROWS * NUM_COLS) / 2;
 constexpr int STARTING_ROWS = 3;
+constexpr unsigned int DRAW_REPETITION = 3;
 
 enum class Piece {
     NONE = 0,

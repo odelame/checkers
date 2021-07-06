@@ -1,11 +1,12 @@
 #include "gameapi.hpp"
 
 CheckersApi::CheckersApi(const unsigned int depth, BitBoard board, bool black_turn) :
-    depth(depth), board(board), black_turn(black_turn), all_moves(this->board.moves(this->get_black_turn())) {
+    depth(depth), board(board), black_turn(black_turn), draw(false), all_moves(this->board.moves(this->get_black_turn())), engine(Engine()) {
 }
 
 void CheckersApi::switch_turn() {
     this->black_turn = !this->black_turn;
+    this->draw = this->draw || (DRAW_REPETITION == engine.increment_get_position_counter(Position(this->board, this->get_black_turn())));
 }
 
 bool CheckersApi::get_black_turn() const {
@@ -25,17 +26,21 @@ bool CheckersApi::is_king(const int x, const int y) const {
 }
 
 bool CheckersApi::game_over() const {
-    return this->all_moves.size() == 0;
+    return this->all_moves.size() == 0 || this->draw;
+}
+
+bool CheckersApi::game_drawn() const {
+    return this->draw;
 }
 
 void CheckersApi::play() {
-    this->board = std::get<0>(engine::best_move(this->board, this->get_black_turn(), this->depth));
+    this->board = std::get<0>(engine.best_move(this->board, this->get_black_turn(), this->depth));
     this->switch_turn();
     this->all_moves = this->board.moves(this->get_black_turn());
 }
 
-std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> CheckersApi::best_move() const {
-    BitBoard next_best = std::get<0>(engine::best_move(this->board, this->get_black_turn(), this->depth));
+std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> CheckersApi::best_move() {
+    BitBoard next_best = std::get<0>(engine.best_move(this->board, this->get_black_turn(), this->depth));
     std::vector<std::pair<int, int>> path_to_end;
 
     iter_on_board([this, next_best, &path_to_end](const int x, const int y) {
@@ -113,7 +118,7 @@ std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> CheckersApi::be
     return std::vector{ std::pair{source_xy, end_xy} };
 }
 
-std::pair<int, int> CheckersApi::hint() const {
+std::pair<int, int> CheckersApi::hint() {
     return this->best_move().front().first;
 }
 
@@ -217,6 +222,7 @@ PYBIND11_MODULE(checkers, handle) {
         .def("best_move", &CheckersApi::best_move)
         .def_property_readonly("black_move", &CheckersApi::get_black_turn)
         .def_property_readonly("game_over", &CheckersApi::game_over)
+        .def_property_readonly("draw", &CheckersApi::game_drawn)
         .def("__getitem__",
             [](CheckersApi& self, py::tuple values) {
                 std::tuple<int, int> indexes = values.cast<std::tuple<int, int>>();

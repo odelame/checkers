@@ -13,7 +13,8 @@
 #include <execution>
 #include <algorithm>
 #include "timer.hpp"
-
+#include <unordered_map>
+#include <boost/functional/hash.hpp>
 
 struct TreeNode {
     const BitBoard board;
@@ -27,10 +28,23 @@ struct TreeNode {
     //TreeNode& operator=(const TreeNode& other);
 };
 
-std::ostream& operator<<(std::ostream& strm, TreeNode& root);
-namespace engine {
+typedef std::pair<BitBoard, bool> Position;
+
+struct hash_position {
+    std::size_t operator()(const Position& position) const;
+};
+
+class Engine {
+public:
+    Engine();
+    short alpha_beta_analysis(TreeNode* root, bool black_turn, std::mutex& m, const unsigned int depth = 6);
     std::pair<BitBoard, short> best_move(BitBoard board, bool black_turn, const unsigned int depth = 6);
-    short alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigned int depth = 6);
-}
+    unsigned int increment_get_position_counter(const Position& position);
+private:
+    std::unordered_map<const Position, unsigned int, hash_position> position_history;
+};
+
+std::ostream& operator<<(std::ostream& strm, TreeNode& root);
+
 
 #endif // _ENGINE_HPP_

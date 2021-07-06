@@ -100,7 +100,9 @@ def display(depth=6, color="black", rotate=False):
         draw(win, game_api, selection, hint, rotation)
         
         if game_api.game_over:
-            if game_api.black_move:
+            if game_api.draw:
+                draw_msg(win, "DRAW !!")
+            elif game_api.black_move:
                 draw_msg(win, "WHITE WINS!!")
             else:
                 draw_msg(win, "BLACK WINS!!")
@@ -141,12 +143,14 @@ def match(black_depth, white_depth, delay):
         draw(win, engine_black)
         black_turn = engine_black.black_move;
         
-        if engine_black.game_over:
-            if engine_black.black_move:
+        if engine_white.game_over:
+            if engine_white.draw:
+                draw_msg(win, "DRAW !!")
+            elif engine_white.black_move:
                 draw_msg(win, "WHITE WINS!!")
             else:
                 draw_msg(win, "BLACK WINS!!")
-            game_running = False   
+            game_running = False  
           
         pygame.display.update()
 

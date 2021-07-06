@@ -8,6 +8,7 @@
 #include <tuple>
 #include <vector>
 #include <algorithm>
+#include <boost/functional/hash.hpp>
 
 class BitBoard {
 private:
@@ -57,8 +58,10 @@ public:
     std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator^(std::bitset<NUMBER_OF_REACHABLE_SQUARES> other) const;
     std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator&(std::bitset<NUMBER_OF_REACHABLE_SQUARES> other) const;
 
-
     bool operator==(const BitBoard& other) const;
+    struct hasher {
+        std::size_t operator()(const BitBoard& board) const;
+    };
     friend std::ostream& operator<<(std::ostream& strm, const BitBoard& board);
 };
 

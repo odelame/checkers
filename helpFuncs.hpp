@@ -20,24 +20,4 @@ int get_end_capture_pos(const int source, const int capture);
 int get_board_index(const int x, const int y);
 std::pair<int, int> board_index_to_xy(const int index);
 
-template<unsigned long N>
-short bit_count(std::bitset<N> bits) {
-    short count = 0;
-
-    for (unsigned int i = 0; i < N; i++) {
-        if (bits[i])
-            count++;
-    }
-
-    return count;
-}
-
-template<unsigned long N>
-unsigned int get_bit_num(std::bitset<N> bits) {
-    unsigned int position = 0;
-    while (position < N && !bits[position])
-        position++;
-    return position;
-}
-
 #endif // _HELPFUNCS_HPP_

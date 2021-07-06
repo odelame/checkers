@@ -5,6 +5,13 @@ TreeNode::TreeNode(const BitBoard state, TreeNode* father, short eval) :
 
 TreeNode::TreeNode(const TreeNode& other) : TreeNode(other.board, other.father, other.eval) {}
 
+std::size_t hash_position::operator()(const Position& position) const {
+    std::size_t seed = 0;
+    boost::hash_combine(seed, BitBoard::hasher()(position.first));
+    boost::hash_combine(seed, position.second);
+    return seed;
+}
+
 void TreeNode::expand(bool black_turn) {
     this->children.clear();
 
@@ -111,139 +118,169 @@ std::ostream& operator<<(std::ostream& strm, TreeNode& root) {
     return strm;
 }
 
-namespace engine {
-    short alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigned int depth) {
-        std::vector<unsigned int> indexes(depth + 1, 0);
-        std::vector<std::pair<short, short>> level_ab(depth + 1, std::pair(SHRT_MIN, SHRT_MAX));
-        bool minimize = black_turn;
-        TreeNode* node = root;
-        unsigned int level = 0;
+Engine::Engine() : position_history(std::unordered_map<const Position, unsigned int, hash_position>()) {}
 
-        do {
-            if (level == depth) {
-                node->evaluate();
+unsigned int Engine::increment_get_position_counter(const Position& position) {
+    return ++this->position_history[position];
+}
 
-                // father is maximize
-                if (minimize) {
-                    node->father->eval = std::max(node->father->eval, node->eval);
-                    short& alpha = std::get<0>(level_ab[level - 1]);
-                    alpha = std::max(alpha, node->eval);
-                }
-                // father is minimize
-                else {
-                    node->father->eval = std::min(node->father->eval, node->eval);
-                    short& beta = std::get<1>(level_ab[level - 1]);
-                    beta = std::min(beta, node->eval);
-                }
+short Engine::alpha_beta_analysis(TreeNode* root, bool black_turn, std::mutex& m, const unsigned int depth) {
+    std::vector<unsigned int> indexes(depth + 1, 0);
+    std::vector<std::pair<short, short>> level_ab(depth + 1, std::pair(SHRT_MIN, SHRT_MAX));
+    bool minimize = black_turn;
+    TreeNode* node = root;
+    unsigned int level = 0;
 
-                //  indexes[level] = 0;
-                level--;
-                indexes[level]++;
-                minimize = !minimize;
-                node = node->father;
+    do {
+        m.lock();
+        if (level != 0 && DRAW_REPETITION - 1 == this->position_history[Position(node->board, minimize)]) {
+            m.unlock();
+            node->eval = 0;
+            // father is maximize
+            if (minimize) {
+                node->father->eval = std::max(node->father->eval, node->eval);
+                short& alpha = std::get<0>(level_ab[level - 1]);
+                alpha = std::max(alpha, node->eval);
             }
-            // if first time in this node:
-            else if (indexes[level] == 0) {
-                node->expand(minimize);
+            // father is minimize
+            else {
+                node->father->eval = std::min(node->father->eval, node->eval);
+                short& beta = std::get<1>(level_ab[level - 1]);
+                beta = std::min(beta, node->eval);
+            }
+
+            indexes[level] = 0;
+            level--;
+            indexes[level]++;
+            minimize = !minimize;
+            node = node->father;
+            continue;
+        }
+        m.unlock();
+        if (level == depth) {
+            node->evaluate();
+
+            // father is maximize
+            if (minimize) {
+                node->father->eval = std::max(node->father->eval, node->eval);
+                short& alpha = std::get<0>(level_ab[level - 1]);
+                alpha = std::max(alpha, node->eval);
+            }
+            // father is minimize
+            else {
+                node->father->eval = std::min(node->father->eval, node->eval);
+                short& beta = std::get<1>(level_ab[level - 1]);
+                beta = std::min(beta, node->eval);
+            }
+
+            //  indexes[level] = 0;
+            level--;
+            indexes[level]++;
+            minimize = !minimize;
+            node = node->father;
+        }
+        // if first time in this node:
+        else if (indexes[level] == 0) {
+            node->expand(minimize);
+            if (minimize)
+                node->eval = SHRT_MAX;
+            else
+                node->eval = SHRT_MIN;
+
+            if (node->children.size() == 0) {
+                if (level == 0)
+                    break;
+
+                // father is maximize, this node is winning for father, -level to ensure progress across moves in winning
                 if (minimize)
-                    node->eval = SHRT_MAX;
+                    node->father->eval = SHRT_MAX;
+                // father is minimize, this node is winning for father, +level to ensure progress across moves in winning
                 else
-                    node->eval = SHRT_MIN;
-
-                if (node->children.size() == 0) {
-                    if (level == 0)
-                        break;
-
-                    // father is maximize, this node is winning for father
-                    if (minimize)
-                        node->father->eval = SHRT_MAX;
-                    // father is minimize, this node is winning for father
-                    else
-                        node->father->eval = SHRT_MIN;
-
-                    level--;
-                    node = node->father;
-                    // cut of all other father children, this child is winning so there is no need to analyse others.
-                    indexes[level] = node->children.size();
-                    minimize = !minimize;
-                }
-                else {
-                    node = &node->children.front();
-                    minimize = !minimize;
-                    level++;
-                    level_ab[level] = level_ab[level - 1];
-                    indexes[level] = 0;
-                }
-            }
-            // if we checked all this nodes children:
-            else if (indexes[level] >= node->children.size()) {
-                // father is maximize
-                if (minimize) {
-                    node->father->eval = std::max(node->father->eval, node->eval);
-                    short& alpha = std::get<0>(level_ab[level - 1]);
-                    alpha = std::max(alpha, node->eval);
-                }
-                else {
-                    node->father->eval = std::min(node->father->eval, node->eval);
-                    short& beta = std::get<1>(level_ab[level - 1]);
-                    beta = std::min(beta, node->eval);
-                }
+                    node->father->eval = SHRT_MIN;
 
                 level--;
                 node = node->father;
-                indexes[level]++;
+                // cut of all other father children, this child is winning so there is no need to analyse others.
+                indexes[level] = node->children.size();
                 minimize = !minimize;
             }
             else {
-                if (minimize && node->eval <= level_ab[level].first) {
-                    indexes[level] = node->children.size();
-                    continue;
-                }
-                if (!minimize && node->eval >= level_ab[level].second) {
-                    indexes[level] = node->children.size();
-                    continue;
-                }
-
-                node = &node->children[indexes[level]];
+                node = &node->children.front();
                 minimize = !minimize;
                 level++;
                 level_ab[level] = level_ab[level - 1];
                 indexes[level] = 0;
             }
-        } while (indexes[0] < root->children.size());
-
-        return root->eval;
-    }
-
-    std::pair<BitBoard, short> best_move(BitBoard board, bool black_turn, const unsigned int depth) {
-        Timer t(std::cout);
-        TreeNode root(board);
-        root.expand(black_turn);
-        std::mutex lock;
-        short eval;
-        if (black_turn)
-            eval = SHRT_MAX;
-        else
-            eval = SHRT_MIN;
-
-        // optimize with parallel processing
-        std::for_each(std::execution::par, root.children.begin(), root.children.end(), [&lock, &eval, black_turn, depth](TreeNode& root) {
-            short temp_eval = alpha_beta_analysis(&root, !black_turn, depth - 1);
-            lock.lock();
-            if (black_turn)
-                eval = std::min(eval, temp_eval);
-            else
-                eval = std::max(eval, temp_eval);
-            lock.unlock();
-            });
-
-        std::cout << eval << std::endl;
-        for (auto& child : root.children) {
-            if (child.eval == eval)
-                return std::pair<BitBoard, short>(child.board, eval);
         }
+        // if we checked all this nodes children:
+        else if (indexes[level] >= node->children.size()) {
+            // father is maximize
+            if (minimize) {
+                node->father->eval = std::max(node->father->eval, node->eval);
+                short& alpha = std::get<0>(level_ab[level - 1]);
+                alpha = std::max(alpha, node->eval);
+            }
+            else {
+                node->father->eval = std::min(node->father->eval, node->eval);
+                short& beta = std::get<1>(level_ab[level - 1]);
+                beta = std::min(beta, node->eval);
+            }
 
-        // unreachable
-        return std::pair(board, 0);
-    }
+            level--;
+            node = node->father;
+            indexes[level]++;
+            minimize = !minimize;
+        }
+        else {
+            if (minimize && node->eval <= level_ab[level].first) {
+                indexes[level] = node->children.size();
+                continue;
+            }
+            if (!minimize && node->eval >= level_ab[level].second) {
+                indexes[level] = node->children.size();
+                continue;
+            }
+
+            node = &node->children[indexes[level]];
+            minimize = !minimize;
+            level++;
+            level_ab[level] = level_ab[level - 1];
+            indexes[level] = 0;
+        }
+    } while (indexes[0] < root->children.size());
+
+    return root->eval;
 }
+
+std::pair<BitBoard, short> Engine::best_move(BitBoard board, bool black_turn, const unsigned int depth) {
+    Timer t(std::cout);
+    TreeNode root(board);
+    root.expand(black_turn);
+    std::mutex lock;
+    short eval;
+    if (black_turn)
+        eval = SHRT_MAX;
+    else
+        eval = SHRT_MIN;
+
+    // optimize with parallel processing
+    std::for_each(std::execution::par, root.children.begin(), root.children.end(), [this, &lock, &eval, black_turn, depth](TreeNode& root) {
+        short temp_eval = this->alpha_beta_analysis(&root, !black_turn, lock, depth - 1);
+        lock.lock();
+        if (black_turn)
+            eval = std::min(eval, temp_eval);
+        else
+            eval = std::max(eval, temp_eval);
+        lock.unlock();
+        });
+
+    std::cout << eval << std::endl;
+    for (auto& child : root.children) {
+        if (child.eval == eval)
+            return std::pair<BitBoard, short>(child.board, eval);
+    }
+
+    // unreachable
+    return std::pair(board, 0);
+}
+
