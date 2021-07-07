@@ -131,14 +131,16 @@ def match(black_depth, white_depth, delay):
            
         if black_turn:
             moves = engine_black.best_move()
-            source, dest = moves[0]
-            engine_black.move(*source, *dest)
-            engine_white.move(*source, *dest)
+            for source, dest in moves:
+                clock.tick(1 / delay)
+                engine_black.move(*source, *dest)
+                engine_white.move(*source, *dest)
         else:
             moves = engine_white.best_move()
-            source, dest = moves[0]
-            engine_white.move(*source, *dest)
-            engine_black.move(*source, *dest)     
+            for source, dest in moves:
+                clock.tick(1 / delay)
+                engine_black.move(*source, *dest)
+                engine_white.move(*source, *dest)
 
         draw(win, engine_black)
         black_turn = engine_black.black_move;

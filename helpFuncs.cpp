@@ -27,6 +27,17 @@ void iter_on_board(std::function<void(int, int)> operation) {
     }
 }
 
+void iter_on_board(std::function<void(int, int, bool&)> operation) {
+    bool done = false;
+    for (int x = 0; x < NUM_COLS; x++) {
+        for (int y = (x + 1) & 1; y < NUM_ROWS; y += 2) {
+            operation(x, y, done);
+            if (done)
+                return;
+        }
+    }
+}
+
 std::ostream& operator<<(std::ostream& strm, std::vector<BitBoard>& list) {
     for (auto b : list)
         strm << b << std::endl;

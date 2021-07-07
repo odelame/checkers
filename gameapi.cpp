@@ -1,4 +1,6 @@
 #include "gameapi.hpp"
+#include <chrono>
+#include <thread>
 
 CheckersApi::CheckersApi(const unsigned int depth, BitBoard board, bool black_turn) :
     depth(depth), board(board), black_turn(black_turn), draw(false), all_moves(this->board.moves(this->get_black_turn())), engine(Engine()) {
@@ -43,7 +45,7 @@ std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> CheckersApi::be
     BitBoard next_best = std::get<0>(engine.best_move(this->board, this->get_black_turn(), this->depth));
     std::vector<std::pair<int, int>> path_to_end;
 
-    iter_on_board([this, next_best, &path_to_end](const int x, const int y) {
+    iter_on_board([this, next_best, &path_to_end](const int x, const int y, bool& done) {
         std::vector<BitBoard> reached_jumps = { this->board };
         std::vector<std::pair<int, int>> jump_coords = { {x, y} };
         std::vector<std::vector<std::pair<int, int>>> history = { jump_coords };
@@ -51,6 +53,7 @@ std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> CheckersApi::be
         while (jump_coords.size() != 0) {
             std::vector<BitBoard> new_reached_jumps;
             std::vector<std::pair<int, int>> new_coords_jumps;
+            std::vector<std::vector<std::pair<int, int>>> new_history;
 
             for (unsigned i = 0; i < jump_coords.size(); i++) {
                 auto [source_x, source_y] = jump_coords[i];
@@ -64,20 +67,23 @@ std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> CheckersApi::be
                         new_reached_jumps.push_back(current_position.capture(source_x, source_y, capture_x, capture_y));
                         new_coords_jumps.push_back(get_end_capture_pos(source_x, source_y, capture_x, capture_y));
                         path.push_back(get_end_capture_pos(source_x, source_y, capture_x, capture_y));
+                        new_history.push_back(path);
                         captured = true;
                     }
                 }
 
                 if (!captured && current_position == next_best) {
                     path_to_end = std::move(path);
+                    done = true;
+                    return;
                 }
             }
 
             reached_jumps = std::move(new_reached_jumps);
             jump_coords = std::move(new_coords_jumps);
+            history = std::move(new_history);
         }
-
-        });
+    });
 
     if (path_to_end.size()) {
         std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> result;
@@ -88,34 +94,19 @@ std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> CheckersApi::be
         return result;
     }
 
-    std::bitset<NUMBER_OF_REACHABLE_SQUARES> source = (this->board ^ next_best) & this->board;
-    std::bitset<NUMBER_OF_REACHABLE_SQUARES> end = next_best & (this->board ^ next_best);
-
-    std::pair<int, int> source_xy;
-    std::pair<int, int> end_xy;
-
-    if (this->get_black_turn()) {
-        for (unsigned i = 0; i < NUMBER_OF_REACHABLE_SQUARES; i++) {
-            if (source[i] && this->board.is_black(board_index_to_xy(i))) {
-                source_xy = board_index_to_xy(i);
-            }
-            if (end[i] && next_best.is_black(board_index_to_xy(i))) {
-                end_xy = board_index_to_xy(i);
+    std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> result;
+    iter_on_board([this, next_best, &result](const int x, const int y, bool& done) {
+        auto candidates = get_candidate_locations(x, y);
+        for (auto [dest_x, dest_y] : candidates) {
+            if (this->board.leagal_move(this->get_black_turn(), x, y, dest_x, dest_y) && next_best == this->board.move(x, y, dest_x, dest_y)) {
+                result = std::move(std::vector{ std::pair{ std::pair(x, y), std::pair(dest_x, dest_y) } });
+                done = true;
+                return;
             }
         }
-    }
-    else {
-        for (unsigned i = 0; i < NUMBER_OF_REACHABLE_SQUARES; i++) {
-            if (source[i] && this->board.is_white(board_index_to_xy(i))) {
-                source_xy = board_index_to_xy(i);
-            }
-            if (end[i] && next_best.is_white(board_index_to_xy(i))) {
-                end_xy = board_index_to_xy(i);
-            }
-        }
-    }
+    });
 
-    return std::vector{ std::pair{source_xy, end_xy} };
+    return result;
 }
 
 std::pair<int, int> CheckersApi::hint() {

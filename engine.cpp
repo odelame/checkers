@@ -1,7 +1,7 @@
 #include "engine.hpp"
 
 TreeNode::TreeNode(const BitBoard state, TreeNode* father, short eval) :
-    board{ state }, father{ father }, eval{ eval } {}
+    board{ state }, father{ father }, eval{ eval }, children{ std::vector<TreeNode>() } {}
 
 TreeNode::TreeNode(const TreeNode& other) : TreeNode(other.board, other.father, other.eval) {}
 
@@ -42,7 +42,6 @@ void TreeNode::expand(bool black_turn) {
 
             reached_jumps = std::move(new_reached_jumps);
             jump_coords = std::move(new_coords_jumps);
-
         }
         });
 
@@ -124,128 +123,109 @@ unsigned int Engine::increment_get_position_counter(const Position& position) {
     return ++this->position_history[position];
 }
 
-short Engine::alpha_beta_analysis(TreeNode* root, bool black_turn, std::mutex& m, const unsigned int depth) {
+void step_down(TreeNode*& node, bool& minimize, std::unordered_set<Position, hash_position>& appeared, std::vector<unsigned int>& indexes, std::vector<std::pair<short, short>>& level_ab, Position& this_position, unsigned int& level) {
+    appeared.insert(this_position);
+    node = &node->children[indexes[level]];
+    minimize = !minimize;
+    this_position = Position(node->board, minimize);
+    level++;
+    level_ab[level] = level_ab[level - 1];
+    indexes[level] = 0;
+}
+
+void step_up(TreeNode*& node, bool& minimize, std::unordered_set<Position, hash_position>& appeared, std::unordered_map<const Position, unsigned int, hash_position>& history, std::vector<unsigned int>& indexes, std::vector<std::pair<short, short>>& level_ab, unsigned int& level, Position& this_position) {
+    // father is maximize
+    if (minimize) {
+        node->father->eval = std::max(node->father->eval, node->eval);
+        short& alpha = std::get<0>(level_ab[level - 1]);
+        alpha = std::max(alpha, node->eval);
+    }
+    // father is minimize
+    else {
+        node->father->eval = std::min(node->father->eval, node->eval);
+        short& beta = std::get<1>(level_ab[level - 1]);
+        beta = std::min(beta, node->eval);
+    }
+
+    indexes[level] = 0;
+    level--;
+
+    indexes[level]++;
+    minimize = !minimize;
+    node = node->father;
+    this_position = Position(node->board, minimize);
+    if (!history.contains(this_position))
+        appeared.erase(this_position);
+}
+
+
+short Engine::alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigned int depth) {
     std::vector<unsigned int> indexes(depth + 1, 0);
     std::vector<std::pair<short, short>> level_ab(depth + 1, std::pair(SHRT_MIN, SHRT_MAX));
     bool minimize = black_turn;
     TreeNode* node = root;
     unsigned int level = 0;
 
+    std::unordered_set<Position, hash_position> appeared;
+    Position this_position(root->board, minimize);
+
     do {
-        m.lock();
-        if (level != 0 && DRAW_REPETITION - 1 == this->position_history[Position(node->board, minimize)]) {
-            m.unlock();
+        // if this node already appeared: if there is a good/bad move from it we will find it in the "parent" copy, 
+        // if the best move causes is to loop to it again => it's a draw.
+        // so we can always evaluate it as a draw.
+        if (appeared.contains(this_position)) {
             node->eval = 0;
-            // father is maximize
-            if (minimize) {
-                node->father->eval = std::max(node->father->eval, node->eval);
-                short& alpha = std::get<0>(level_ab[level - 1]);
-                alpha = std::max(alpha, node->eval);
-            }
-            // father is minimize
-            else {
-                node->father->eval = std::min(node->father->eval, node->eval);
-                short& beta = std::get<1>(level_ab[level - 1]);
-                beta = std::min(beta, node->eval);
-            }
 
-            indexes[level] = 0;
-            level--;
-            indexes[level]++;
-            minimize = !minimize;
-            node = node->father;
-            continue;
+            if (level == 0)
+                break;
+            step_up(node, minimize, appeared, this->position_history, indexes, level_ab, level, this_position);
         }
-        m.unlock();
-        if (level == depth) {
+        // last nodes in tree need to be evaluated
+        else if (level == depth) {
             node->evaluate();
-
-            // father is maximize
-            if (minimize) {
-                node->father->eval = std::max(node->father->eval, node->eval);
-                short& alpha = std::get<0>(level_ab[level - 1]);
-                alpha = std::max(alpha, node->eval);
-            }
-            // father is minimize
-            else {
-                node->father->eval = std::min(node->father->eval, node->eval);
-                short& beta = std::get<1>(level_ab[level - 1]);
-                beta = std::min(beta, node->eval);
-            }
-
-            //  indexes[level] = 0;
-            level--;
-            indexes[level]++;
-            minimize = !minimize;
-            node = node->father;
+            step_up(node, minimize, appeared, this->position_history, indexes, level_ab, level, this_position);
         }
         // if first time in this node:
         else if (indexes[level] == 0) {
             node->expand(minimize);
+
+            // default evaluation is worst, so we will change it from children for sure.
             if (minimize)
                 node->eval = SHRT_MAX;
             else
                 node->eval = SHRT_MIN;
 
+            // if this node is infact a loss:
             if (node->children.size() == 0) {
+                // this means we lost the game
                 if (level == 0)
                     break;
-
-                // father is maximize, this node is winning for father, -level to ensure progress across moves in winning
-                if (minimize)
-                    node->father->eval = SHRT_MAX;
-                // father is minimize, this node is winning for father, +level to ensure progress across moves in winning
-                else
-                    node->father->eval = SHRT_MIN;
-
-                level--;
-                node = node->father;
-                // cut of all other father children, this child is winning so there is no need to analyse others.
-                indexes[level] = node->children.size();
-                minimize = !minimize;
+                // move back up, father will be a winning move.
+                step_up(node, minimize, appeared, this->position_history, indexes, level_ab, level, this_position);
             }
-            else {
-                node = &node->children.front();
-                minimize = !minimize;
-                level++;
-                level_ab[level] = level_ab[level - 1];
-                indexes[level] = 0;
-            }
+            else
+                step_down(node, minimize, appeared, indexes, level_ab, this_position, level);
         }
-        // if we checked all this nodes children:
+        // if we checked all this nodes children, or rendered then unimportant due to alpha-beta pruning
         else if (indexes[level] >= node->children.size()) {
-            // father is maximize
-            if (minimize) {
-                node->father->eval = std::max(node->father->eval, node->eval);
-                short& alpha = std::get<0>(level_ab[level - 1]);
-                alpha = std::max(alpha, node->eval);
-            }
-            else {
-                node->father->eval = std::min(node->father->eval, node->eval);
-                short& beta = std::get<1>(level_ab[level - 1]);
-                beta = std::min(beta, node->eval);
-            }
-
-            level--;
-            node = node->father;
-            indexes[level]++;
-            minimize = !minimize;
+            // unreachable??
+            if (level == 0)
+                break;
+            step_up(node, minimize, appeared, this->position_history, indexes, level_ab, level, this_position);
         }
+        // default option: we need to move down.
         else {
+            // alpha-beta cutoff, alpha cutoff
             if (minimize && node->eval <= level_ab[level].first) {
                 indexes[level] = node->children.size();
                 continue;
             }
+            // alpha-beta cutoff, beta cutoff
             if (!minimize && node->eval >= level_ab[level].second) {
                 indexes[level] = node->children.size();
                 continue;
             }
-
-            node = &node->children[indexes[level]];
-            minimize = !minimize;
-            level++;
-            level_ab[level] = level_ab[level - 1];
-            indexes[level] = 0;
+            step_down(node, minimize, appeared, indexes, level_ab, this_position, level);
         }
     } while (indexes[0] < root->children.size());
 
@@ -265,7 +245,7 @@ std::pair<BitBoard, short> Engine::best_move(BitBoard board, bool black_turn, co
 
     // optimize with parallel processing
     std::for_each(std::execution::par, root.children.begin(), root.children.end(), [this, &lock, &eval, black_turn, depth](TreeNode& root) {
-        short temp_eval = this->alpha_beta_analysis(&root, !black_turn, lock, depth - 1);
+        short temp_eval = this->alpha_beta_analysis(&root, !black_turn, depth - 1);
         lock.lock();
         if (black_turn)
             eval = std::min(eval, temp_eval);
@@ -275,10 +255,12 @@ std::pair<BitBoard, short> Engine::best_move(BitBoard board, bool black_turn, co
         });
 
     std::cout << eval << std::endl;
+
     for (auto& child : root.children) {
         if (child.eval == eval)
             return std::pair<BitBoard, short>(child.board, eval);
     }
+
 
     // unreachable
     return std::pair(board, 0);
