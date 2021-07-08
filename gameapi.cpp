@@ -1,7 +1,7 @@
 #include "gameapi.hpp"
 
 CheckersApi::CheckersApi(const unsigned int depth, BitBoard board, bool black_turn) :
-    depth(depth), board(board), black_turn(black_turn), draw(false), all_moves(this->board.moves(this->get_black_turn())), since_last_significant_move(0), engine(Engine()) {
+    depth(depth), board(board), black_turn(black_turn), draw(false), all_moves(this->board.moves(this->get_black_turn())), engine(Engine()) {
 }
 
 /**
@@ -11,9 +11,10 @@ CheckersApi::CheckersApi(const unsigned int depth, BitBoard board, bool black_tu
  */
 void CheckersApi::set_board(BitBoard new_board) {
     if (new_board.piece_count() == this->board.piece_count())
-        this->since_last_significant_move++;
+        this->engine.increment_since_capture();
     else
-        this->since_last_significant_move = 0;
+        this->engine.reset_since_capture();
+
     this->board = new_board;
 }
 
@@ -23,8 +24,8 @@ void CheckersApi::set_board(BitBoard new_board) {
  */
 void CheckersApi::switch_turn() {
     this->black_turn = !this->black_turn;
-    this->draw = this->draw || (REPETITION_DRAW == engine.increment_get_position_counter(Position(this->board, this->get_black_turn())))
-        || this->since_last_significant_move == NO_ACTION_DRAW;
+    this->draw = this->draw || (REPETITION_DRAW == engine.increment_position_history_counter(Position(this->board, this->get_black_turn())))
+        || this->engine.get_since_capture() >= NO_CAPTURE_DRAW;
 }
 
 bool CheckersApi::get_black_turn() const {
@@ -79,9 +80,14 @@ std::pair<std::vector<std::pair<std::pair<unsigned int, unsigned int>, std::pair
     auto [next_best, eval] = engine.best_move(this->board, this->get_black_turn(), this->depth);
     std::vector<std::pair<unsigned int, unsigned int>> path_to_end;
 
-    // if we had a capture, or a series of captures, then we need to build the path.
-    iter_on_board([this, next_best, &path_to_end](const unsigned int x, const unsigned int y, bool& done) {
-        // locations that where reached.
+    for (auto [x, y] : this->board) {
+        if (this->get_black_turn() && !this->board.is_black(x, y))
+            continue;
+        if (!this->get_black_turn() && !this->board.is_white(x, y))
+            continue;
+        // if we had a capture, or a series of captures, then we need to build the path.
+        //for (auto [x, y] : this->board) {
+            // locations that where reached.
         std::vector<BitBoard> reached_jumps = { this->board };
         // coordinates that where reached: jump_coords[i] will be the landing coordinate to get to reaches_jumps[i]
         std::vector<std::pair<unsigned int, unsigned int>> jump_coords = { {x, y} };
@@ -118,8 +124,7 @@ std::pair<std::vector<std::pair<std::pair<unsigned int, unsigned int>, std::pair
                 if (!captured && current_position == next_best) {
                     // move the path to path_to_end and exit this lambda.
                     path_to_end = std::move(path);
-                    done = true;
-                    return;
+                    goto BREAK_ALL_LOOPS;
                 }
             }
 
@@ -128,7 +133,9 @@ std::pair<std::vector<std::pair<std::pair<unsigned int, unsigned int>, std::pair
             jump_coords = std::move(new_coords_jumps);
             history = std::move(new_history);
         }
-    });
+    }
+
+BREAK_ALL_LOOPS:
 
     // if the position was reaches
     if (path_to_end.size() != 0) {
@@ -143,19 +150,17 @@ std::pair<std::vector<std::pair<std::pair<unsigned int, unsigned int>, std::pair
     }
 
     // else it was not reached via captures, get all the possible next moves and the move serires to get to them: 
-    std::vector<std::pair<std::pair<unsigned int, unsigned int>, std::pair<unsigned int, unsigned int>>> result_path;
-    iter_on_board([this, next_best, &result_path](const unsigned int x, const unsigned int y, bool& done) {
+    for (auto [x, y] : this->board) {
         auto candidates = get_candidate_locations(x, y);
         for (auto [dest_x, dest_y] : candidates) {
-            if (this->board.leagal_move(this->get_black_turn(), x, y, dest_x, dest_y) && next_best == this->board.move(x, y, dest_x, dest_y)) {
-                result_path = { std::pair{std::pair(x, y), std::pair(dest_x, dest_y)} };
-                done = true;
-                return;
-            }
-        }
-    });
+            if (this->board.leagal_move(this->get_black_turn(), x, y, dest_x, dest_y) && next_best == this->board.move(x, y, dest_x, dest_y))
+                return std::pair{ std::vector{ std::pair{std::pair(x, y), std::pair(dest_x, dest_y)} }, eval };
 
-    return std::pair(result_path, eval);
+        }
+    }
+
+    // unreachable default return value
+    return std::pair{ std::vector{ std::pair{std::pair(0u, 0u), std::pair(0u, 0u)} }, 0 };
 }
 
 /**
@@ -334,14 +339,14 @@ PYBIND11_MODULE(checkers, handle) {
                 return s.str();
             })
         .def_property_readonly("black_move", &CheckersApi::get_black_turn)
-        .def_property_readonly("white_move", [](CheckersApi& self) { return !self.get_black_turn(); })
-        .def_property_readonly("game_over", &CheckersApi::game_over)
-        .def_property_readonly("draw", &CheckersApi::game_drawn)
-        .def("__getitem__",
-            [](CheckersApi& self, py::tuple values) {
-                auto [x, y] = values.cast<std::tuple<int, int>>();
-                return self.get(x, y);
-            },
-        py::arg("index"))
-        ;
+                .def_property_readonly("white_move", [](CheckersApi& self) { return !self.get_black_turn(); })
+                .def_property_readonly("game_over", &CheckersApi::game_over)
+                .def_property_readonly("draw", &CheckersApi::game_drawn)
+                .def("__getitem__",
+                    [](CheckersApi& self, py::tuple values) {
+                        auto [x, y] = values.cast<std::tuple<int, int>>();
+                        return self.get(x, y);
+                    },
+                py::arg("index"))
+                ;
 }

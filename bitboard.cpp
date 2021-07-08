@@ -2,6 +2,17 @@
 
 
 unsigned int get_board_index(const unsigned int x, const unsigned int y);
+std::pair<unsigned int, unsigned int> board_index_to_xy(const unsigned int index);
+
+/**
+ * @brief given an index to the bitboard return the coresponding x,y coordinates.
+ *
+ * @param index
+ * @return std::pair<unsigned int, unsigned int>
+ */
+std::pair<unsigned int, unsigned int> board_index_to_xy(const unsigned int index) {
+    return std::pair(((index & 3) << 1) | (1 & ((index >> 2) ^ 1)), index >> 2);
+}
 /**
  * @brief calculate the bit index for (x, y) coordinate.
  *
@@ -310,11 +321,11 @@ std::vector<BitBoard> BitBoard::captures(const bool black_turn) const {
     std::vector<BitBoard> result;
 
     // generate all captures.
-    iter_on_board([&result, this, black_turn](const unsigned int x, const unsigned int y) {
+    for (auto [x, y] : *this) {
         auto new_moves = this->captures(black_turn, x, y);
         result.reserve(result.size() + new_moves.size());
         result.insert(result.end(), new_moves.begin(), new_moves.end());
-        });
+    }
 
     return result;
 }
@@ -333,11 +344,11 @@ std::vector<BitBoard> BitBoard::moves(const bool black_turn) const {
         return result;
 
     // generate all moves.
-    iter_on_board([&result, this, black_turn](const unsigned int x, const unsigned int y) {
+    for (auto [x, y] : *this) {
         auto new_moves = this->moves(black_turn, x, y);
         result.reserve(result.size() + new_moves.size());
         result.insert(result.end(), new_moves.begin(), new_moves.end());
-        });
+    }
 
     return result;
 }
@@ -404,6 +415,59 @@ void BitBoard::set(const unsigned int x, const unsigned int y, const Piece value
     }
 }
 
+BitBoard::iterator BitBoard::begin() const {
+    return BitBoard::iterator(0, *this);
+}
+
+BitBoard::iterator BitBoard::end() const {
+    return BitBoard::iterator(NUMBER_OF_REACHABLE_SQUARES, *this);
+}
+
+BitBoard::iterator& BitBoard::iterator::operator++() {
+    this->skip_to_next();
+    return *this;
+}
+
+BitBoard::iterator& BitBoard::iterator::operator--() {
+    this->skip_to_pre();
+    return *this;
+}
+
+BitBoard::iterator BitBoard::iterator::operator++(int) {
+    auto copy = *this;
+    ++(*this);
+    return copy;
+}
+
+BitBoard::iterator BitBoard::iterator::operator--(int) {
+    auto copy = *this;
+    --(*this);
+    return copy;
+}
+
+std::pair<unsigned int, unsigned int> BitBoard::iterator::operator*() {
+    return board_index_to_xy(this->index);
+}
+
+bool BitBoard::iterator::operator==(const iterator& other) const {
+    return this->index == other.index;
+}
+
+bool BitBoard::iterator::operator!=(const iterator& other) const {
+    return this->index != other.index;
+}
+
+void BitBoard::iterator::skip_to_next() {
+    this->index++;
+    for (; this->index < NUMBER_OF_REACHABLE_SQUARES && !this->board.black_is_in[this->index] && !this->board.white_is_in[this->index]; this->index++);
+}
+
+void BitBoard::iterator::skip_to_pre() {
+    if (0 == this->index)
+        return;
+    this->index--;
+    for (; 0 < this->index && !this->board.black_is_in[this->index] && !this->board.white_is_in[this->index]; this->index--);
+}
 
 std::stringstream& operator<<(std::stringstream& strm, Piece piece) {
     switch (piece) {

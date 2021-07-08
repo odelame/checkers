@@ -13,9 +13,6 @@
 
 std::vector<std::pair<unsigned int, unsigned int>> get_candidate_locations(const unsigned int x, const unsigned int y);
 bool is_opposite_color(Piece source, Piece other);
-void iter_on_board(std::function<void(unsigned int, unsigned int)> operation);
-void iter_on_board(std::function<void(unsigned int, unsigned int, bool&)> operation);
-
 std::ostream& operator<<(std::ostream& strm, std::vector<BitBoard>& list);
 std::pair<unsigned int, unsigned int> get_end_capture_pos(const unsigned int source_x, const unsigned int source_y, const unsigned int capture_x, const unsigned int capture_y);
 unsigned int get_end_capture_pos(const unsigned int source, const unsigned int capture);

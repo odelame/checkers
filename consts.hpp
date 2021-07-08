@@ -10,8 +10,8 @@ constexpr unsigned int NUMBER_OF_REACHABLE_SQUARES = (NUM_ROWS * NUM_COLS) / 2;
 constexpr unsigned int STARTING_ROWS = 3;
 // Number of move repetitions for a draw
 constexpr unsigned int REPETITION_DRAW = 3;
-// Number of insignificant moves in a row for a draw (insignificant = no promote and no capture)
-constexpr unsigned int NO_ACTION_DRAW = 100;
+// Number of non capture move to force a draw
+constexpr unsigned int NO_CAPTURE_DRAW = 100;
 
 enum class Piece {
     NONE = 0,

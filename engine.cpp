@@ -34,21 +34,41 @@ std::size_t hash_position::operator()(const Position& position) const {
     return seed;
 }
 
-void TreeNode::expand(bool black_turn) {
+/**
+ * @brief sets node's children to all the possible next position from it assuming it's black's turn is black_turn.
+ * returns true is there was a capture.
+ *
+ * @param black_turn
+ * @return true
+ * @return false
+ */
+bool TreeNode::expand(bool black_turn) {
     this->children.clear();
+    // for each coordinate non-empty on the board
+    for (auto [x, y] : this->board) {
+        // if the piece is of the wrong color: skip it.
+        if (black_turn && !this->board.is_black(x, y))
+            continue;
+        if (!black_turn && !this->board.is_white(x, y))
+            continue;
 
-    iter_on_board([this, black_turn](const unsigned int x, const unsigned int y) {
+        // reached_jumps: boards we have just reached.
         std::vector<BitBoard> reached_jumps = { this->board };
+        // will keep track in correspondence to reaches_jumps of the last coordinate we jumped to.
         std::vector<std::pair<unsigned int, unsigned int>> jump_coords = { {x, y} };
 
+        // while we jumped somewhere new:
         while (jump_coords.size() != 0) {
+            // next iterations of previously explained vectors.
             std::vector<BitBoard> new_reached_jumps;
             std::vector<std::pair<unsigned int, unsigned int>> new_coords_jumps;
 
+            // for each last coordinate and position:
             for (auto [jump_coords, current_position] : boost::combine(jump_coords, reached_jumps)) {
                 auto [source_x, source_y] = jump_coords;
                 auto candidates = get_candidate_locations(source_x, source_y);
 
+                // try ro jump from it, add new jumps to new_reaches_jumps and new_coords_jumps.
                 bool captured = false;
                 for (auto [capture_x, capture_y] : candidates) {
                     if (current_position.leagal_capture(black_turn, source_x, source_y, capture_x, capture_y)) {
@@ -58,6 +78,7 @@ void TreeNode::expand(bool black_turn) {
                     }
                 }
 
+                // if no new reached jumps <=> captured == false which means add this to the children of the node.
                 if (!captured && current_position != this->board)
                     this->children.emplace_back(current_position, this);
             }
@@ -65,21 +86,30 @@ void TreeNode::expand(bool black_turn) {
             reached_jumps = std::move(new_reached_jumps);
             jump_coords = std::move(new_coords_jumps);
         }
-    });
+    }
 
+    // if found jumps
     if (this->children.size() != 0)
-        return;
+        return true;
 
-    iter_on_board([this, black_turn](const unsigned int x, const unsigned int y) {
+    // look for regular moves.
+    for (auto [x, y] : this->board) {
         auto new_moves = this->board.moves(black_turn, x, y);
         this->children.reserve(this->children.size() + new_moves.size());
 
         for (auto& new_move : new_moves) {
             this->children.emplace_back(new_move, this);
         }
-    });
+    }
+
+    return false;
 }
 
+/**
+ * @brief evaluate a TreeNode without looking at any depth of the position.
+ *
+ * @return short
+ */
 short TreeNode::evaluate() {
     this->eval = 2 * board.num_white() + board.num_white_kings() - 2 * board.num_black() - board.num_black_kings();
     this->eval <<= 4;
@@ -139,14 +169,22 @@ std::ostream& operator<<(std::ostream& strm, TreeNode& root) {
     return strm;
 }
 
-Engine::Engine() : position_history(std::unordered_map<const Position, unsigned int, hash_position>()), no_progress_moves(0) {}
+Engine::Engine() : position_history(std::unordered_map<const Position, unsigned int, hash_position>()), since_capture(0) {}
 
-unsigned int Engine::increment_get_position_counter(const Position& position) {
+unsigned int Engine::increment_position_history_counter(const Position& position) {
     return ++this->position_history[position];
 }
 
-unsigned int Engine::increment_no_progress() {
-    return ++this->no_progress_moves;
+void Engine::increment_since_capture() {
+    this->since_capture++;
+}
+
+void Engine::reset_since_capture() {
+    this->since_capture = 0;
+}
+
+unsigned int Engine::get_since_capture() {
+    return this->since_capture;
 }
 
 /**
@@ -188,7 +226,7 @@ void step_down(TreeNode*& node, bool& minimize, std::unordered_set<Position, has
  * @param level
  * @param this_position
  */
-void step_up(TreeNode*& node, bool& minimize, std::unordered_set<Position, hash_position>& appeared, const std::unordered_map<const Position, unsigned int, hash_position>& history, std::vector<unsigned int>& indexes, std::vector<std::pair<short, short>>& level_ab, unsigned int& level, Position& this_position) {
+void step_up(TreeNode*& node, bool& minimize, std::unordered_set<Position, hash_position>& appeared, const std::unordered_map<const Position, unsigned int, hash_position>& history, std::vector<unsigned int>& indexes, std::vector<std::pair<short, short>>& level_ab, unsigned int& level, Position& this_position, int& action_level) {
     // father is maximize
     if (minimize) {
         node->father->eval = std::max(node->father->eval, node->eval);
@@ -204,10 +242,10 @@ void step_up(TreeNode*& node, bool& minimize, std::unordered_set<Position, hash_
         beta = std::min(beta, node->eval);
     }
 
-    // indexes[level] = 0
-
     // step up
     node = node->father;
+    if (action_level == (int)level)
+        action_level = -1;
     level--;
     indexes[level]++;
     minimize = !minimize;
@@ -221,7 +259,6 @@ void step_up(TreeNode*& node, bool& minimize, std::unordered_set<Position, hash_
 /**
  * @brief implementation of alpha-beta pruning algorithm to find the best move given a depth.
  *
- *
  * @param root
  * @param black_turn
  * @param depth
@@ -234,34 +271,39 @@ short Engine::alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigne
     TreeNode* node = root;
     unsigned int level = 0;
 
+    const unsigned int draw_no_action = NO_CAPTURE_DRAW - this->since_capture;
+    int action_level = -1;
+
     std::unordered_set<Position, hash_position> appeared;
     Position this_position(root->board, minimize);
 
     do {
-        // if this node already appeared: if there is a good/bad move from it we will find it in the "parent" copy, 
+        // if this node already appeared: if there is a good/bad move from it we would have found it in the "parent" copy, 
         // if the best move causes is to loop to it again => it's a draw.
         // so we can always evaluate it as a draw.
-        if (appeared.contains(this_position)) {
+        // another draw is by no action.
+        if (appeared.contains(this_position) || (level >= draw_no_action && action_level == -1)) {
             node->eval = 0;
 
             if (level == 0)
                 break;
-            step_up(node, minimize, appeared, this->position_history, indexes, level_ab, level, this_position);
+            step_up(node, minimize, appeared, this->position_history, indexes, level_ab, level, this_position, action_level);
         }
         // last nodes in tree needs to be evaluated
         else if (level == depth) {
             node->evaluate();
-            step_up(node, minimize, appeared, this->position_history, indexes, level_ab, level, this_position);
+            step_up(node, minimize, appeared, this->position_history, indexes, level_ab, level, this_position, action_level);
         }
         // if first time in this node:
         else if (indexes[level] == 0) {
-            node->expand(minimize);
-
             // default evaluation is worst, so we will change it from children for sure.
             if (minimize)
                 node->eval = SHRT_MAX;
             else
                 node->eval = SHRT_MIN;
+
+            if (node->expand(minimize) && action_level == -1)
+                action_level = level + 1;
 
             // if this node is infact a loss:
             if (node->children.size() == 0) {
@@ -269,7 +311,7 @@ short Engine::alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigne
                 if (level == 0)
                     break;
                 // move back up, father will be a winning move.
-                step_up(node, minimize, appeared, this->position_history, indexes, level_ab, level, this_position);
+                step_up(node, minimize, appeared, this->position_history, indexes, level_ab, level, this_position, action_level);
             }
             else
                 step_down(node, minimize, appeared, indexes, level_ab, this_position, level);
@@ -279,7 +321,7 @@ short Engine::alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigne
             // unreachable??
             if (level == 0)
                 break;
-            step_up(node, minimize, appeared, this->position_history, indexes, level_ab, level, this_position);
+            step_up(node, minimize, appeared, this->position_history, indexes, level_ab, level, this_position, action_level);
         }
         // default option: we need to move down.
         else {
@@ -301,6 +343,14 @@ short Engine::alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigne
     return root->eval;
 }
 
+/**
+ * @brief get the best possible next position accourding to engine analysis and the engines evaluation of it.
+ *
+ * @param board
+ * @param black_turn
+ * @param depth
+ * @return std::pair<BitBoard, short>
+ */
 std::pair<BitBoard, short> Engine::best_move(BitBoard board, bool black_turn, const unsigned int depth) const {
     TreeNode root(board);
     root.expand(black_turn);

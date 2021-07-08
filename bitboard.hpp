@@ -1,5 +1,5 @@
-#ifndef _BITBOARD_HPP_
-#define _BITBOARD_HPP_
+#ifndef BITBOARD_HPP
+#define BITBOARD_HPP
 
 #include <iostream>
 #include <bitset>
@@ -54,7 +54,6 @@ public:
 
     std::vector<BitBoard> captures(const bool black_turn) const;
     std::vector<BitBoard> moves(const bool black_turn) const;
-    std::vector<BitBoard> reachable(const bool black_turn) const;
 
     std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator^(const BitBoard& other) const;
     std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator&(const BitBoard& other) const;
@@ -63,6 +62,30 @@ public:
 
     bool operator==(const BitBoard& other) const;
     BitBoard& operator=(const BitBoard& other);
+    class iterator {
+    private:
+        unsigned int index;
+        const BitBoard& board;
+        void skip_to_next();
+        void skip_to_pre();
+    public:
+        iterator(const unsigned int index, const BitBoard& board) :
+            index(index), board(board) {
+            if (this->index < NUMBER_OF_REACHABLE_SQUARES && !board.white_is_in[this->index] && !board.black_is_in[index])
+                skip_to_next();
+        }
+        iterator& operator++();
+        iterator& operator--();
+        iterator operator++(int);
+        iterator operator--(int);
+        std::pair<unsigned int, unsigned int> operator*();
+        bool operator==(const iterator& other) const;
+        bool operator!=(const iterator& other) const;
+    };
+
+    iterator begin() const;
+    iterator end() const;
+
     struct hasher {
         std::size_t operator()(const BitBoard& board) const;
     };
@@ -80,4 +103,4 @@ bool in_bounds(const unsigned int index);
 
 #include "helpFuncs.hpp"
 
-#endif // _BITBOARD_HPP_
+#endif // BITBOARD_HPP

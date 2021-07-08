@@ -33,35 +33,6 @@ bool is_opposite_color(Piece source, Piece other) {
     return (source == Piece::WHITE || source == Piece::WHITE_KING) && (other == Piece::BLACK || other == Piece::BLACK_KING);
 }
 
-/**
- * @brief iter on all the leagall indexes in a board, activate operation on each one.
- *
- * @param operation
- */
-void iter_on_board(std::function<void(unsigned int x, unsigned int y)> operation) {
-    for (unsigned int x = 0; x < NUM_COLS; x++) {
-        for (unsigned int y = (x + 1) & 1; y < NUM_ROWS; y += 2) {
-            operation(x, y);
-        }
-    }
-}
-
-/**
- * @brief iter on all the leagall indexes in a board, activate operation on each one, stop if run is set to false.
- *
- * @param operation
- */
-void iter_on_board(std::function<void(unsigned int x, unsigned int y, bool& run)> operation) {
-    bool done = false;
-    for (unsigned int x = 0; x < NUM_COLS; x++) {
-        for (unsigned int y = (x + 1) & 1; y < NUM_ROWS; y += 2) {
-            operation(x, y, done);
-            if (done)
-                return;
-        }
-    }
-}
-
 std::ostream& operator<<(std::ostream& strm, std::vector<BitBoard>& list) {
     for (auto b : list)
         strm << b << std::endl;

@@ -22,7 +22,6 @@ private:
     bool black_turn;
     bool draw;
     std::vector<BitBoard> all_moves;
-    unsigned int since_last_significant_move;
     Engine engine;
     void switch_turn();
     void set_board(BitBoard new_board);

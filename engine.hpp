@@ -22,7 +22,7 @@ struct TreeNode {
     std::vector<TreeNode> children;
     TreeNode(const BitBoard state, TreeNode* father = nullptr, short eval = 0);
     TreeNode(const TreeNode& other);
-    void expand(bool black_turn);
+    bool expand(bool black_turn);
     short evaluate();
     bool operator<(const TreeNode& other) const;
     TreeNode& operator=(TreeNode&& other);
@@ -40,11 +40,13 @@ public:
     Engine();
     short alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigned int depth = 6) const;
     std::pair<BitBoard, short> best_move(BitBoard board, bool black_turn, const unsigned int depth = 6) const;
-    unsigned int increment_get_position_counter(const Position& position);
-    unsigned int increment_no_progress();
+    unsigned int increment_position_history_counter(const Position& position);
+    void increment_since_capture();
+    void reset_since_capture();
+    unsigned int get_since_capture();
 private:
     std::unordered_map<const Position, unsigned int, hash_position> position_history;
-    unsigned int no_progress_moves;
+    unsigned int since_capture;
 };
 
 std::ostream& operator<<(std::ostream& strm, TreeNode& root);

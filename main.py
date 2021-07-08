@@ -97,7 +97,7 @@ def draw(win, checkers_api: Api, selection: tuple[int]=None, hint: tuple[int]=No
         circle_square(win, RED, hint, radius=SQUARE_SIZE // 5, rotation=rotation)  
 
     if None != selection:
-        for x, y in checkers_api.moves(*selection):
+        for x, y in checkers_api.leagal_moves(*selection):
             circle_square(win, BLUE, (x, y), radius=SQUARE_SIZE // 4, rotation=rotation)
         
 def handle_game(depth: int=6, color: str="black", rotate: bool=False):
@@ -240,7 +240,7 @@ if __name__ == '__main__':
     parser.add_argument("-c", "--color", action="store",type=str, default="black")
     parser.add_argument("-r", "--rotate", action="store_true", default=False)
     args = parser.parse_args()
-    
+
     if not args.match:
         handle_game(args.depth, args.color, args.rotate)
     else:
