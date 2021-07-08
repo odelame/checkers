@@ -9,16 +9,14 @@
 #include <climits>
 #include <boost/range/combine.hpp>
 #include <sstream>
-#include <mutex>
-#include <execution>
+#include <atomic>
 #include <algorithm>
-#include "timer.hpp"
 #include <unordered_map>
 #include <unordered_set>
 #include <boost/functional/hash.hpp>
 
 struct TreeNode {
-    const BitBoard board;
+    BitBoard board;
     TreeNode* father;
     short eval;
     std::vector<TreeNode> children;
@@ -26,7 +24,9 @@ struct TreeNode {
     TreeNode(const TreeNode& other);
     void expand(bool black_turn);
     short evaluate();
-    //TreeNode& operator=(const TreeNode& other);
+    bool operator<(const TreeNode& other) const;
+    TreeNode& operator=(TreeNode&& other);
+    TreeNode& operator=(const TreeNode& other);
 };
 
 typedef std::pair<BitBoard, bool> Position;
@@ -38,11 +38,13 @@ struct hash_position {
 class Engine {
 public:
     Engine();
-    short alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigned int depth = 6);
-    std::pair<BitBoard, short> best_move(BitBoard board, bool black_turn, const unsigned int depth = 6);
+    short alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigned int depth = 6) const;
+    std::pair<BitBoard, short> best_move(BitBoard board, bool black_turn, const unsigned int depth = 6) const;
     unsigned int increment_get_position_counter(const Position& position);
+    unsigned int increment_no_progress();
 private:
     std::unordered_map<const Position, unsigned int, hash_position> position_history;
+    unsigned int no_progress_moves;
 };
 
 std::ostream& operator<<(std::ostream& strm, TreeNode& root);

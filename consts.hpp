@@ -4,11 +4,14 @@
 #include <vector>
 #include <tuple>
 
-constexpr int NUM_ROWS = 8;
-constexpr int NUM_COLS = 8;
-constexpr int NUMBER_OF_REACHABLE_SQUARES = (NUM_ROWS * NUM_COLS) / 2;
-constexpr int STARTING_ROWS = 3;
-constexpr unsigned int DRAW_REPETITION = 3;
+constexpr unsigned int NUM_ROWS = 8;
+constexpr unsigned int NUM_COLS = NUM_ROWS;
+constexpr unsigned int NUMBER_OF_REACHABLE_SQUARES = (NUM_ROWS * NUM_COLS) / 2;
+constexpr unsigned int STARTING_ROWS = 3;
+// Number of move repetitions for a draw
+constexpr unsigned int REPETITION_DRAW = 3;
+// Number of insignificant moves in a row for a draw (insignificant = no promote and no capture)
+constexpr unsigned int NO_ACTION_DRAW = 100;
 
 enum class Piece {
     NONE = 0,

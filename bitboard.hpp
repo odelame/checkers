@@ -9,6 +9,7 @@
 #include <vector>
 #include <algorithm>
 #include <boost/functional/hash.hpp>
+#include <sstream>
 
 class BitBoard {
 private:
@@ -18,36 +19,38 @@ private:
     std::bitset<NUMBER_OF_REACHABLE_SQUARES> white_is_in = { 4095ULL };
     std::bitset<NUMBER_OF_REACHABLE_SQUARES> kings = { 0ULL };
 
-    void set_king(const int x, const int y);
-    void set(const int x, const int y, const Piece value);
+    void set_king(const unsigned int x, const unsigned int y);
+    void set(const unsigned int x, const unsigned int y, const Piece value);
 
 public:
     BitBoard();
     BitBoard(const BitBoard& other);
 
-    Piece get(const int x, const int y) const;
+    Piece get(const unsigned int x, const unsigned int y) const;
 
-    bool is_king(const int x, const int y) const;
-    bool is_black(const int x, const int y) const;
-    bool is_white(const int x, const int y) const;
-    bool is_black(const std::pair<const int, const int> coords) const;
-    bool is_white(const std::pair<const int, const int> coords) const;
-    bool is_king(const std::pair<const int, const int> coords) const;
-    void set_king(const std::pair<const int, const int> coords);
+    bool is_king(const unsigned int x, const unsigned int y) const;
+    bool is_black(const unsigned int x, const unsigned int y) const;
+    bool is_white(const unsigned int x, const unsigned int y) const;
+    bool is_black(const std::pair<const unsigned int, const unsigned int> coords) const;
+    bool is_white(const std::pair<const unsigned int, const unsigned int> coords) const;
+    bool is_king(const std::pair<const unsigned int, const unsigned int> coords) const;
+    void set_king(const std::pair<const unsigned int, const unsigned int> coords);
 
     short num_white() const;
     short num_black() const;
+    short piece_count() const;
+    short king_count() const;
     short num_white_kings() const;
     short num_black_kings() const;
 
-    BitBoard move(const int source_x, const int source_y, const int dest_x, const int dest_y) const;
-    BitBoard capture(const int source_x, const int source_y, const int dest_x, const int dest_y) const;
+    BitBoard move(const unsigned int source_x, const unsigned int source_y, const unsigned int dest_x, const unsigned int dest_y) const;
+    BitBoard capture(const unsigned int source_x, const unsigned int source_y, const unsigned int dest_x, const unsigned int dest_y) const;
 
-    bool leagal_capture(bool black_turn, const int source_x, const int source_y, const int capture_x, const int capture_y) const;
-    bool leagal_move(const bool black_turn, const int source_x, const int source_y, const int dest_x, const int dest_y) const;
+    bool leagal_capture(bool black_turn, const unsigned int source_x, const unsigned int source_y, const unsigned int capture_x, const unsigned int capture_y) const;
+    bool leagal_move(const bool black_turn, const unsigned int source_x, const unsigned int source_y, const unsigned int dest_x, const unsigned int dest_y) const;
 
-    std::vector<BitBoard> moves(const bool black_turn, const int x, const int y) const;
-    std::vector<BitBoard> captures(const bool black_turn, const int x, const int y) const;
+    std::vector<BitBoard> moves(const bool black_turn, const unsigned int x, const unsigned int y) const;
+    std::vector<BitBoard> captures(const bool black_turn, const unsigned int x, const unsigned int y) const;
 
     std::vector<BitBoard> captures(const bool black_turn) const;
     std::vector<BitBoard> moves(const bool black_turn) const;
@@ -59,6 +62,7 @@ public:
     std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator&(std::bitset<NUMBER_OF_REACHABLE_SQUARES> other) const;
 
     bool operator==(const BitBoard& other) const;
+    BitBoard& operator=(const BitBoard& other);
     struct hasher {
         std::size_t operator()(const BitBoard& board) const;
     };
@@ -68,11 +72,12 @@ public:
 std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator^(std::bitset<NUMBER_OF_REACHABLE_SQUARES> bits, const BitBoard& board);
 std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator&(std::bitset<NUMBER_OF_REACHABLE_SQUARES> bits, const BitBoard& board);
 
-
-
-#include "helpFuncs.hpp"
-
+std::stringstream& operator<<(std::stringstream& strm, const BitBoard& board);
+std::stringstream& operator<<(std::stringstream& strm, Piece piece);
 std::ostream& operator<<(std::ostream& strm, const BitBoard& board);
 std::ostream& operator<<(std::ostream& strm, Piece piece);
+bool in_bounds(const unsigned int index);
+
+#include "helpFuncs.hpp"
 
 #endif // _BITBOARD_HPP_

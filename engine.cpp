@@ -5,6 +5,28 @@ TreeNode::TreeNode(const BitBoard state, TreeNode* father, short eval) :
 
 TreeNode::TreeNode(const TreeNode& other) : TreeNode(other.board, other.father, other.eval) {}
 
+bool TreeNode::operator<(const TreeNode& other) const {
+    return this->eval < other.eval;
+}
+
+TreeNode& TreeNode::operator=(TreeNode&& other) {
+    this->children = std::move(other.children);
+    this->eval = other.eval;
+    this->father = other.father;
+    other.eval = 0;
+    other.father = nullptr;
+    this->board = other.board;
+    return *this;
+}
+
+TreeNode& TreeNode::operator=(const TreeNode& other) {
+    this->children = other.children;
+    this->eval = other.eval;
+    this->father = other.father;
+    this->board = other.board;
+    return *this;
+}
+
 std::size_t hash_position::operator()(const Position& position) const {
     std::size_t seed = 0;
     boost::hash_combine(seed, BitBoard::hasher()(position.first));
@@ -15,13 +37,13 @@ std::size_t hash_position::operator()(const Position& position) const {
 void TreeNode::expand(bool black_turn) {
     this->children.clear();
 
-    iter_on_board([this, black_turn](const int x, const int y) {
+    iter_on_board([this, black_turn](const unsigned int x, const unsigned int y) {
         std::vector<BitBoard> reached_jumps = { this->board };
-        std::vector<std::pair<int, int>> jump_coords = { {x, y} };
+        std::vector<std::pair<unsigned int, unsigned int>> jump_coords = { {x, y} };
 
         while (jump_coords.size() != 0) {
             std::vector<BitBoard> new_reached_jumps;
-            std::vector<std::pair<int, int>> new_coords_jumps;
+            std::vector<std::pair<unsigned int, unsigned int>> new_coords_jumps;
 
             for (auto [jump_coords, current_position] : boost::combine(jump_coords, reached_jumps)) {
                 auto [source_x, source_y] = jump_coords;
@@ -43,19 +65,19 @@ void TreeNode::expand(bool black_turn) {
             reached_jumps = std::move(new_reached_jumps);
             jump_coords = std::move(new_coords_jumps);
         }
-        });
+    });
 
     if (this->children.size() != 0)
         return;
 
-    iter_on_board([this, black_turn](const int x, const int y) {
+    iter_on_board([this, black_turn](const unsigned int x, const unsigned int y) {
         auto new_moves = this->board.moves(black_turn, x, y);
         this->children.reserve(this->children.size() + new_moves.size());
 
         for (auto& new_move : new_moves) {
             this->children.emplace_back(new_move, this);
         }
-        });
+    });
 }
 
 short TreeNode::evaluate() {
@@ -63,8 +85,8 @@ short TreeNode::evaluate() {
     this->eval <<= 4;
 
     // center is worth more because it can impact more
-    for (int x = NUM_COLS / 4; x <= NUM_COLS - NUM_COLS / 4; x++) {
-        for (int y = (x & 1) + NUM_ROWS / 4 + 1; y < NUM_ROWS - NUM_ROWS / 4; y += 2) {
+    for (unsigned int x = NUM_COLS / 4; x <= NUM_COLS - NUM_COLS / 4; x++) {
+        for (unsigned int y = (x & 1) + NUM_ROWS / 4 + 1; y < NUM_ROWS - NUM_ROWS / 4; y += 2) {
             this->eval += (board.get(x, y) == Piece::WHITE) + (board.get(x, y) == Piece::WHITE_KING)
                 - (board.get(x, y) == Piece::BLACK) - (board.get(x, y) == Piece::BLACK_KING);
         }
@@ -73,7 +95,7 @@ short TreeNode::evaluate() {
     this->eval <<= 1;
 
     // Sides of the board are worth more because cannot be taken
-    for (int y = 1; y < NUM_ROWS; y += 2) {
+    for (unsigned int y = 1; y < NUM_ROWS; y += 2) {
         this->eval += board.is_white(0, y) - board.is_black(0, y);
         this->eval += board.is_white(NUM_COLS - 1, y - 1) - board.is_black(NUM_COLS - 1, y - 1);
 
@@ -117,49 +139,95 @@ std::ostream& operator<<(std::ostream& strm, TreeNode& root) {
     return strm;
 }
 
-Engine::Engine() : position_history(std::unordered_map<const Position, unsigned int, hash_position>()) {}
+Engine::Engine() : position_history(std::unordered_map<const Position, unsigned int, hash_position>()), no_progress_moves(0) {}
 
 unsigned int Engine::increment_get_position_counter(const Position& position) {
     return ++this->position_history[position];
 }
 
+unsigned int Engine::increment_no_progress() {
+    return ++this->no_progress_moves;
+}
+
+/**
+ * @brief steps down in tree of alpha-beta pruning algorithm and updates all the necessary help data
+ *
+ * @param node
+ * @param minimize
+ * @param appeared
+ * @param indexes
+ * @param level_ab
+ * @param this_position
+ * @param level
+ */
 void step_down(TreeNode*& node, bool& minimize, std::unordered_set<Position, hash_position>& appeared, std::vector<unsigned int>& indexes, std::vector<std::pair<short, short>>& level_ab, Position& this_position, unsigned int& level) {
+    // from this point on, this position has happened, will be removed by step_up later on.
     appeared.insert(this_position);
+    // step down.
     node = &node->children[indexes[level]];
+    // update this position and the minimize
     minimize = !minimize;
     this_position = Position(node->board, minimize);
+    // update the level in the tree
     level++;
+    // when going down for the first time alpha-beta is simply the parent alpha-beta
     level_ab[level] = level_ab[level - 1];
+    // this will ensure stepping down from this node works properly.
     indexes[level] = 0;
 }
 
-void step_up(TreeNode*& node, bool& minimize, std::unordered_set<Position, hash_position>& appeared, std::unordered_map<const Position, unsigned int, hash_position>& history, std::vector<unsigned int>& indexes, std::vector<std::pair<short, short>>& level_ab, unsigned int& level, Position& this_position) {
+/**
+ * @brief steps up in tree of alpha-beta pruning algorithm and updates all the necessary help data
+ *
+ * @param node
+ * @param minimize
+ * @param appeared
+ * @param history
+ * @param indexes
+ * @param level_ab
+ * @param level
+ * @param this_position
+ */
+void step_up(TreeNode*& node, bool& minimize, std::unordered_set<Position, hash_position>& appeared, const std::unordered_map<const Position, unsigned int, hash_position>& history, std::vector<unsigned int>& indexes, std::vector<std::pair<short, short>>& level_ab, unsigned int& level, Position& this_position) {
     // father is maximize
     if (minimize) {
         node->father->eval = std::max(node->father->eval, node->eval);
+        // if you do not understand this => look up alpha-beta pruning algorithm
         short& alpha = std::get<0>(level_ab[level - 1]);
         alpha = std::max(alpha, node->eval);
     }
     // father is minimize
     else {
         node->father->eval = std::min(node->father->eval, node->eval);
+        // if you do not understand this => look up alpha-beta pruning algorithm
         short& beta = std::get<1>(level_ab[level - 1]);
         beta = std::min(beta, node->eval);
     }
 
-    indexes[level] = 0;
-    level--;
+    // indexes[level] = 0
 
+    // step up
+    node = node->father;
+    level--;
     indexes[level]++;
     minimize = !minimize;
-    node = node->father;
+    // update this position
     this_position = Position(node->board, minimize);
+    // if this position was not in history i.e. a position that happened on the board, it is no longer in the set of positions that have accored in this line.
     if (!history.contains(this_position))
         appeared.erase(this_position);
 }
 
-
-short Engine::alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigned int depth) {
+/**
+ * @brief implementation of alpha-beta pruning algorithm to find the best move given a depth.
+ *
+ *
+ * @param root
+ * @param black_turn
+ * @param depth
+ * @return short
+ */
+short Engine::alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigned int depth) const {
     std::vector<unsigned int> indexes(depth + 1, 0);
     std::vector<std::pair<short, short>> level_ab(depth + 1, std::pair(SHRT_MIN, SHRT_MAX));
     bool minimize = black_turn;
@@ -180,7 +248,7 @@ short Engine::alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigne
                 break;
             step_up(node, minimize, appeared, this->position_history, indexes, level_ab, level, this_position);
         }
-        // last nodes in tree need to be evaluated
+        // last nodes in tree needs to be evaluated
         else if (level == depth) {
             node->evaluate();
             step_up(node, minimize, appeared, this->position_history, indexes, level_ab, level, this_position);
@@ -228,39 +296,34 @@ short Engine::alpha_beta_analysis(TreeNode* root, bool black_turn, const unsigne
             step_down(node, minimize, appeared, indexes, level_ab, this_position, level);
         }
     } while (indexes[0] < root->children.size());
+    // while root was not fully evaluated.
 
     return root->eval;
 }
 
-std::pair<BitBoard, short> Engine::best_move(BitBoard board, bool black_turn, const unsigned int depth) {
-    Timer t(std::cout);
+std::pair<BitBoard, short> Engine::best_move(BitBoard board, bool black_turn, const unsigned int depth) const {
     TreeNode root(board);
     root.expand(black_turn);
-    std::mutex lock;
-    short eval;
+    std::atomic<short> eval;
+
     if (black_turn)
         eval = SHRT_MAX;
     else
         eval = SHRT_MIN;
 
-    // optimize with parallel processing
-    std::for_each(std::execution::par, root.children.begin(), root.children.end(), [this, &lock, &eval, black_turn, depth](TreeNode& root) {
+    // optimize the move-search with parallel processing
+    std::for_each(std::execution::par, root.children.begin(), root.children.end(), [this, &eval, black_turn, depth](TreeNode& root) {
         short temp_eval = this->alpha_beta_analysis(&root, !black_turn, depth - 1);
-        lock.lock();
         if (black_turn)
-            eval = std::min(eval, temp_eval);
+            eval = std::min(eval.load(), temp_eval);
         else
-            eval = std::max(eval, temp_eval);
-        lock.unlock();
-        });
-
-    std::cout << eval << std::endl;
+            eval = std::max(eval.load(), temp_eval);
+    });
 
     for (auto& child : root.children) {
         if (child.eval == eval)
             return std::pair<BitBoard, short>(child.board, eval);
     }
-
 
     // unreachable
     return std::pair(board, 0);
