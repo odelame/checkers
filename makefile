@@ -24,10 +24,3 @@ helpFuncs.o: helpFuncs.cpp 	helpFuncs.hpp 	consts.hpp
 clean:
 	rm -f *.o
 	rm -f *.gch
-	
-cclean: engine	clean
-
-run: engine
-	./engine
-
-runclean: run 	clean
