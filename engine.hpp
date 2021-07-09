@@ -1,5 +1,5 @@
-#ifndef _ENGINE_HPP_
-#define _ENGINE_HPP_
+#ifndef ENGINE_HPP
+#define ENGINE_HPP
 
 #include "bitboard.hpp"
 #include "helpFuncs.hpp"
@@ -52,4 +52,4 @@ private:
 std::ostream& operator<<(std::ostream& strm, TreeNode& root);
 
 
-#endif // _ENGINE_HPP_
+#endif // ENGINE_HPP

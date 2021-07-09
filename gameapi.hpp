@@ -1,5 +1,5 @@
-#ifndef _GAMEAPI_HPP_
-#define _GAMEAPI_HPP_
+#ifndef GAMEAPI_HPP
+#define GAMEAPI_HPP
 
 #include "bitboard.hpp"
 #include <tuple>
@@ -45,4 +45,4 @@ public:
 
 std::stringstream& operator<<(std::stringstream& strm, CheckersApi& api);
 
-#endif // _GAMEAPI_HPP_
+#endif // GAMEAPI_HPP

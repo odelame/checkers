@@ -1,5 +1,5 @@
-#ifndef _HELPFUNCS_HPP_
-#define _HELPFUNCS_HPP_
+#ifndef HELPFUNCS_HPP
+#define HELPFUNCS_HPP
 
 #include <vector>
 #include <tuple>
@@ -17,4 +17,4 @@ std::ostream& operator<<(std::ostream& strm, std::vector<BitBoard>& list);
 std::pair<unsigned int, unsigned int> get_end_capture_pos(const unsigned int source_x, const unsigned int source_y, const unsigned int capture_x, const unsigned int capture_y);
 unsigned int get_end_capture_pos(const unsigned int source, const unsigned int capture);
 
-#endif // _HELPFUNCS_HPP_
+#endif // HELPFUNCS_HPP

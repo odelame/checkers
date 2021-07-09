@@ -1,6 +1,5 @@
 #include "bitboard.hpp"
 
-
 unsigned int get_board_index(const unsigned int x, const unsigned int y);
 std::pair<unsigned int, unsigned int> board_index_to_xy(const unsigned int index);
 
@@ -30,6 +29,10 @@ BitBoard::BitBoard(const BitBoard& other) :
 
 bool BitBoard::operator==(const BitBoard& other) const {
     return this->black_is_in == other.black_is_in && this->white_is_in == other.white_is_in && this->kings == other.kings;
+}
+
+bool BitBoard::operator!=(const BitBoard& other) const {
+    return this->black_is_in != other.black_is_in || this->white_is_in != other.white_is_in || this->kings != other.kings;
 }
 
 BitBoard& BitBoard::operator=(const BitBoard& other) {
@@ -415,54 +418,59 @@ void BitBoard::set(const unsigned int x, const unsigned int y, const Piece value
     }
 }
 
-BitBoard::iterator BitBoard::begin() const {
-    return BitBoard::iterator(0, *this);
+BitBoard::Iterator::Iterator(const unsigned int index, const BitBoard& board) : index(index), board(board) {
+    if (!board.white_is_in[this->index] && !board.black_is_in[this->index])
+        this->skip_to_next();
 }
 
-BitBoard::iterator BitBoard::end() const {
-    return BitBoard::iterator(NUMBER_OF_REACHABLE_SQUARES, *this);
+BitBoard::Iterator BitBoard::begin() const {
+    return BitBoard::Iterator(0, *this);
 }
 
-BitBoard::iterator& BitBoard::iterator::operator++() {
+BitBoard::Iterator BitBoard::end() const {
+    return BitBoard::Iterator(NUMBER_OF_REACHABLE_SQUARES, *this);
+}
+
+BitBoard::Iterator& BitBoard::Iterator::operator++() {
     this->skip_to_next();
     return *this;
 }
 
-BitBoard::iterator& BitBoard::iterator::operator--() {
+BitBoard::Iterator& BitBoard::Iterator::operator--() {
     this->skip_to_pre();
     return *this;
 }
 
-BitBoard::iterator BitBoard::iterator::operator++(int) {
+BitBoard::Iterator BitBoard::Iterator::operator++(int) {
     auto copy = *this;
     ++(*this);
     return copy;
 }
 
-BitBoard::iterator BitBoard::iterator::operator--(int) {
+BitBoard::Iterator BitBoard::Iterator::operator--(int) {
     auto copy = *this;
     --(*this);
     return copy;
 }
 
-std::pair<unsigned int, unsigned int> BitBoard::iterator::operator*() {
+std::pair<unsigned int, unsigned int> BitBoard::Iterator::operator*() {
     return board_index_to_xy(this->index);
 }
 
-bool BitBoard::iterator::operator==(const iterator& other) const {
+bool BitBoard::Iterator::operator==(const Iterator& other) const {
     return this->index == other.index;
 }
 
-bool BitBoard::iterator::operator!=(const iterator& other) const {
+bool BitBoard::Iterator::operator!=(const Iterator& other) const {
     return this->index != other.index;
 }
 
-void BitBoard::iterator::skip_to_next() {
+void BitBoard::Iterator::skip_to_next() {
     this->index++;
     for (; this->index < NUMBER_OF_REACHABLE_SQUARES && !this->board.black_is_in[this->index] && !this->board.white_is_in[this->index]; this->index++);
 }
 
-void BitBoard::iterator::skip_to_pre() {
+void BitBoard::Iterator::skip_to_pre() {
     if (0 == this->index)
         return;
     this->index--;

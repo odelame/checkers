@@ -61,30 +61,27 @@ public:
     std::bitset<NUMBER_OF_REACHABLE_SQUARES> operator&(std::bitset<NUMBER_OF_REACHABLE_SQUARES> other) const;
 
     bool operator==(const BitBoard& other) const;
+    bool operator!=(const BitBoard& other) const;
     BitBoard& operator=(const BitBoard& other);
-    class iterator {
+    class Iterator {
     private:
         unsigned int index;
         const BitBoard& board;
         void skip_to_next();
         void skip_to_pre();
     public:
-        iterator(const unsigned int index, const BitBoard& board) :
-            index(index), board(board) {
-            if (this->index < NUMBER_OF_REACHABLE_SQUARES && !board.white_is_in[this->index] && !board.black_is_in[index])
-                skip_to_next();
-        }
-        iterator& operator++();
-        iterator& operator--();
-        iterator operator++(int);
-        iterator operator--(int);
+        Iterator(const unsigned int index, const BitBoard& board);
+        Iterator& operator++();
+        Iterator& operator--();
+        Iterator operator++(int);
+        Iterator operator--(int);
         std::pair<unsigned int, unsigned int> operator*();
-        bool operator==(const iterator& other) const;
-        bool operator!=(const iterator& other) const;
+        bool operator==(const Iterator& other) const;
+        bool operator!=(const Iterator& other) const;
     };
 
-    iterator begin() const;
-    iterator end() const;
+    Iterator begin() const;
+    Iterator end() const;
 
     struct hasher {
         std::size_t operator()(const BitBoard& board) const;

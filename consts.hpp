@@ -1,5 +1,5 @@
-#ifndef _CONSTS_HPP_
-#define _CONSTS_HPP_
+#ifndef CONSTS_HPP
+#define CONSTS_HPP
 
 #include <vector>
 #include <tuple>
@@ -26,4 +26,4 @@ enum Direction {
     DOWN = 1
 };
 
-#endif // _CONSTS_HPP_
+#endif // CONSTS_HPP
