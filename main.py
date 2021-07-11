@@ -100,7 +100,7 @@ def draw(win, checkers_api: Api, selection: tuple[int]=None, hint: tuple[int]=No
         for x, y in checkers_api.leagal_moves(*selection):
             circle_square(win, BLUE, (x, y), radius=SQUARE_SIZE // 4, rotation=rotation)
         
-def handle_game(depth: int=6, color: str="black", rotate: bool=False):
+def handle_game(depth: int=6, color: str="black", delay: float=0.5, flip: bool=False):
     """handle the game between the user and the engine
 
     Args:
@@ -111,13 +111,20 @@ def handle_game(depth: int=6, color: str="black", rotate: bool=False):
     win = pygame.display.set_mode((WIDTH, HEIGHT))  
     pygame.display.set_caption("Checkers")
     # the usuall rotation of the board is color == "white", if user asked to rotate != rotate rotates it again.
-    rotation = (color == "white") != rotate
+    rotation = (color == "white") != flip
     clock = pygame.time.Clock()
     game_api = Api(depth)
     selection = None
     hint = None
 
     game_running = True
+    
+    # clock will tick in 1/delay, if delay is 0 we use inf to prevent a crash
+    if delay == 0:
+        from math import inf
+        ticking_time = inf
+    else:
+        ticking_time = 1 / delay
     
     if color=="white":
         game_api.play()
@@ -137,9 +144,9 @@ def handle_game(depth: int=6, color: str="black", rotate: bool=False):
                         moves, eval = game_api.best_move()
                         draw(win, game_api, selection, hint, rotation)
                         pygame.display.update()
-                        # play move by move 2 moves a second until the engine is done.
+                        # play move by move wait moves a second until the engine is done.
                         for move in moves:
-                            clock.tick(2)    
+                            clock.tick(ticking_time)    
                             source, dest = move
                             game_api.move(*source, *dest)
                             draw(win, game_api, selection, hint, rotation)
@@ -165,7 +172,7 @@ def handle_game(depth: int=6, color: str="black", rotate: bool=False):
 
     pygame.quit()
     
-def match(black_depth: int=6, white_depth: int=6, delay: float=0.5):
+def match(black_depth: int=6, white_depth: int=6, delay: float=0.5, flip: bool=False):
     """play a match between two engines of set depth
 
     Args:
@@ -185,12 +192,12 @@ def match(black_depth: int=6, white_depth: int=6, delay: float=0.5):
     # clock will tick in 1/delay, if delay is 0 we use inf to prevent a crash
     if delay == 0:
         from math import inf
-        wait = inf
+        ticking_time = inf
     else:
-        wait = 1 / delay
+        ticking_time = 1 / delay
 
     while game_running:
-        clock.tick(wait)
+        clock.tick(ticking_time)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -200,19 +207,19 @@ def match(black_depth: int=6, white_depth: int=6, delay: float=0.5):
             # play the black move step by step.
             moves, eval = engine_black.best_move()
             for source, dest in moves:
-                clock.tick(wait)
+                clock.tick(ticking_time)
                 engine_black.move(*source, *dest)
                 engine_white.move(*source, *dest)
-                draw(win, engine_black)
+                draw(win, engine_black, rotation=flip)
                 pygame.display.update()
         else:
             moves, eval = engine_white.best_move()
             # play the white move step by step.
             for source, dest in moves:
-                clock.tick(wait)
+                clock.tick(ticking_time)
                 engine_black.move(*source, *dest)
                 engine_white.move(*source, *dest)
-                draw(win, engine_black)
+                draw(win, engine_black, rotation=flip)
                 pygame.display.update()
 
         black_turn = engine_black.black_move;
@@ -232,16 +239,16 @@ def match(black_depth: int=6, white_depth: int=6, delay: float=0.5):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument("-m", "--match", action="store_true", default=False)
-    parser.add_argument("-d", "--depth", action="store",type=int, default=6)
-    parser.add_argument("-db", "--depth-black", action="store",type=int, default=6)
-    parser.add_argument("-dw", "--depth-white", action="store",type=int, default=6)
-    parser.add_argument("-dl", "--delay", action="store", type=float, default=0.5)
-    parser.add_argument("-c", "--color", action="store",type=str, default="black")
-    parser.add_argument("-r", "--rotate", action="store_true", default=False)
+    parser.add_argument("-m", "--match", help="make the engine play against itself", action="store_true", default=False)
+    parser.add_argument("-d", "--depth", help="The depth of moves the engine will look into, no effect with --match", action="store",type=int, default=6)
+    parser.add_argument("-db", "--depth-black", help="The depth of moves black engine will look into, only effective with --match", action="store",type=int, default=6)
+    parser.add_argument("-dw", "--depth-white", help="The depth of moves white engine will look into, only effective with --match", action="store",type=int, default=6)
+    parser.add_argument("-dl", "--delay", help="The delay between moves, may be more due to engine computation time", action="store", type=float, default=0.5)
+    parser.add_argument("-c", "--color", help="Choose a color to play with", action="store",type=str, default="black")
+    parser.add_argument("-f", "--flip", help="Flip the board",  action="store_true", default=False)
     args = parser.parse_args()
 
     if not args.match:
-        handle_game(args.depth, args.color, args.rotate)
+        handle_game(args.depth, args.color, args.delay, args.flip)
     else:
-        match(args.depth_black, args.depth_white, args.delay)
+        match(args.depth_black, args.depth_white, args.delay, args.flip)
