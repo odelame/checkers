@@ -7,7 +7,7 @@ LIB = -ltbb
 LINK.o = $(LINK.cpp)
 
 checkers: bitboard.o	gameapi.o 	helpFuncs.o 	engine.o
-	$(LINK.o) -fPIC -shared -o $^ $@$(SUFFIX) $(LIB)
+	$(LINK.o) -shared $(CPPFLAGS) $^ -o $@$(SUFFIX) $(LIB)
 	
 engine.o: engine.cpp 	engine.hpp 	helpFuncs.hpp 	consts.hpp
 	$(CPP) $(CPPFLAGS) $^ -c
