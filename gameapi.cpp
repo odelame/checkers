@@ -111,7 +111,7 @@ std::pair<std::vector<std::pair<std::pair<unsigned int, unsigned int>, std::pair
                 // get all the next possible positions from this position:
                 bool captured = false;
                 for (auto [capture_x, capture_y] : candidates) {
-                    if (current_position.leagal_capture(black_turn, source_x, source_y, capture_x, capture_y)) {
+                    if (current_position.legal_capture(black_turn, source_x, source_y, capture_x, capture_y)) {
                         new_reached_jumps.push_back(current_position.capture(source_x, source_y, capture_x, capture_y));
                         new_coords_jumps.push_back(get_end_capture_pos(source_x, source_y, capture_x, capture_y));
                         path.push_back(get_end_capture_pos(source_x, source_y, capture_x, capture_y));
@@ -153,7 +153,7 @@ BREAK_ALL_LOOPS:
     for (auto [x, y] : this->board) {
         auto candidates = get_candidate_locations(x, y);
         for (auto [dest_x, dest_y] : candidates) {
-            if (this->board.leagal_move(this->get_black_turn(), x, y, dest_x, dest_y) && next_best == this->board.move(x, y, dest_x, dest_y))
+            if (this->board.legal_move(this->get_black_turn(), x, y, dest_x, dest_y) && next_best == this->board.move(x, y, dest_x, dest_y))
                 return std::pair{ std::vector{ std::pair{std::pair(x, y), std::pair(dest_x, dest_y)} }, eval };
 
         }
@@ -206,7 +206,7 @@ py::object CheckersApi::move(const unsigned int source_x, const unsigned int sou
     BitBoard after_move = this->board.move(source_x, source_y, dest_x, dest_y);
     BitBoard after_capture = this->board.capture(source_x, source_y, (dest_x + source_x) / 2, (dest_y + source_y) / 2);
 
-    // check if it was a capture and a leagal one (all_moves holds all leagal moves)
+    // check if it was a capture and a legal one (all_moves holds all legal moves)
     if (std::find(this->all_moves.begin(), this->all_moves.end(), after_capture) != this->all_moves.end()) {
         // update the position
         this->set_board(after_capture);
@@ -224,9 +224,9 @@ py::object CheckersApi::move(const unsigned int source_x, const unsigned int sou
 
         return py::cast<py::none>(Py_None);
     }
-    // if it was a regular move and a leagal one.
+    // if it was a regular move and a legal one.
     if (std::find(this->all_moves.begin(), this->all_moves.end(), after_move) != this->all_moves.end()) {
-        // update the position and the leagal moves, pass the turn.
+        // update the position and the legal moves, pass the turn.
         this->set_board(after_move);
         this->switch_turn();
         this->all_moves = this->board.moves(this->get_black_turn());
@@ -237,7 +237,7 @@ py::object CheckersApi::move(const unsigned int source_x, const unsigned int sou
 }
 
 /**
- * @brief returns the piece at position x, y, checks if input is leagall
+ * @brief returns the piece at position x, y, checks if input is legall
  *
  * @param x
  * @param y
@@ -252,7 +252,7 @@ Piece CheckersApi::get(const unsigned int x, const unsigned int y) const {
 }
 
 /**
- * @brief get all the possible leagall destinations moves from coordinates (x, y)
+ * @brief get all the possible legall destinations moves from coordinates (x, y)
  *
  * @param x
  * @param y
@@ -266,14 +266,14 @@ std::vector<std::pair<unsigned int, unsigned int>> CheckersApi::possible_moves(c
         // if there are captures: check for captures and return the found ones.
         if (this->captures_available()) {
             for (auto [dest_x, dest_y] : candidates) {
-                if (this->board.leagal_capture(this->get_black_turn(), x, y, dest_x, dest_y))
+                if (this->board.legal_capture(this->get_black_turn(), x, y, dest_x, dest_y))
                     possibilities.push_back(get_end_capture_pos(x, y, dest_x, dest_y));
             }
         }
         // if there are no captures: check for regular moves and return them.
         else {
             for (auto [dest_x, dest_y] : candidates) {
-                if (this->board.leagal_move(this->get_black_turn(), x, y, dest_x, dest_y))
+                if (this->board.legal_move(this->get_black_turn(), x, y, dest_x, dest_y))
                     possibilities.emplace_back(dest_x, dest_y);
             }
         }
@@ -298,8 +298,8 @@ PYBIND11_MODULE(checkers, handle) {
         "Api.is_white(x: int, y: int) -> bool, checks if the piece at (x, y) coordinates is white\n"
         "Api.is_black(x: int, y: int) -> bool, checks if the piece at (x, y) coordinates is black\n"
         "Api.is_king(x: int, y: int) -> bool, checks if the piece at (x, y) coordinates is a king\n"
-        "Api.leagal_moves(x: int, y: int) -> list[tuple[int, int]], returns a list of all leagal destinations from x, y coordinates\n"
-        "Api.move(source_x: int, source_y: int, dest_x: int, dest_: int) -> tuple, checks if a move is leagal, if so plays it, returns None if move is not leagall otherwise returns the end position\n"
+        "Api.legal_moves(x: int, y: int) -> list[tuple[int, int]], returns a list of all legal destinations from x, y coordinates\n"
+        "Api.move(source_x: int, source_y: int, dest_x: int, dest_: int) -> tuple, checks if a move is legal, if so plays it, returns None if move is not legall otherwise returns the end position\n"
         "Api.play() -> None, plays the best move according to the engine.\n"
         "Api.best_move() -> tuple[list[tuple[tuple[int, int], tuple[int, int]]], int], returns a list representing the best move, and the evaluation of the end position from that move\n"
         "Api.__len__() -> int, returns the length or width of the board (equal)\n"
@@ -326,7 +326,7 @@ PYBIND11_MODULE(checkers, handle) {
         .def("is_white", &CheckersApi::is_white, py::arg("x"), py::arg("y"))
         .def("is_black", &CheckersApi::is_black, py::arg("x"), py::arg("y"))
         .def("is_king", &CheckersApi::is_king, py::arg("x"), py::arg("y"))
-        .def("leagal_moves", &CheckersApi::possible_moves, py::arg("x"), py::arg("y"))
+        .def("legal_moves", &CheckersApi::possible_moves, py::arg("x"), py::arg("y"))
         .def("move", &CheckersApi::move, py::arg("source_x"), py::arg("source_y"), py::arg("dest_x"), py::arg("dest_y"))
         .def("play", &CheckersApi::play)
         .def("hint", &CheckersApi::hint)

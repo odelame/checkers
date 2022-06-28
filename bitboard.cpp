@@ -4,7 +4,7 @@ unsigned int get_board_index(const unsigned int x, const unsigned int y);
 std::pair<unsigned int, unsigned int> board_index_to_xy(const unsigned int index);
 
 /**
- * @brief given an index to the bitboard return the coresponding x,y coordinates.
+ * @brief given an index to the bitboard return the corresponding x,y coordinates.
  *
  * @param index
  * @return std::pair<unsigned int, unsigned int>
@@ -175,7 +175,7 @@ short BitBoard::king_count() const {
 }
 
 /**
- * @brief checks if it's leagal to capture (dest_x, dest_y) from (source_x, source_y) assuming its blacks turn if black_turn
+ * @brief checks if it's legal to capture (dest_x, dest_y) from (source_x, source_y) assuming its blacks turn if black_turn
  *
  * @param black_turn
  * @param source_x
@@ -185,7 +185,7 @@ short BitBoard::king_count() const {
  * @return true
  * @return false
  */
-bool BitBoard::leagal_capture(bool black_turn, const unsigned int source_x, const unsigned int source_y, const unsigned int capture_x, const unsigned int capture_y) const {
+bool BitBoard::legal_capture(bool black_turn, const unsigned int source_x, const unsigned int source_y, const unsigned int capture_x, const unsigned int capture_y) const {
     if (!in_bounds(get_end_capture_pos(source_x, capture_x)) || !in_bounds(get_end_capture_pos(source_y, capture_y)) || Piece::NONE != this->get(get_end_capture_pos(source_x, capture_x), get_end_capture_pos(source_y, capture_y)))
         return false;
 
@@ -210,7 +210,7 @@ bool BitBoard::leagal_capture(bool black_turn, const unsigned int source_x, cons
 }
 
 /**
- * @brief checks if a move from (source_x, source_y) to (dest_x, dest_y) is leagal, assumes no captures are possible
+ * @brief checks if a move from (source_x, source_y) to (dest_x, dest_y) is legal, assumes no captures are possible
  *
  * @param black_turn
  * @param source_x
@@ -220,7 +220,7 @@ bool BitBoard::leagal_capture(bool black_turn, const unsigned int source_x, cons
  * @return true
  * @return false
  */
-bool BitBoard::leagal_move(const bool black_turn, const unsigned int source_x, const unsigned int source_y, const unsigned int dest_x, const unsigned int dest_y) const {
+bool BitBoard::legal_move(const bool black_turn, const unsigned int source_x, const unsigned int source_y, const unsigned int dest_x, const unsigned int dest_y) const {
     if (!in_bounds(dest_x) || !in_bounds(dest_y) || this->get(dest_x, dest_y) != Piece::NONE || std::abs((int)dest_x - (int)source_x) != 1)
         return false;
 
@@ -234,7 +234,7 @@ bool BitBoard::leagal_move(const bool black_turn, const unsigned int source_x, c
 }
 
 /**
- * @brief moves from (source_x, source_y) to (dest_x, dest_y) and gives new board result, assumes leagal input
+ * @brief moves from (source_x, source_y) to (dest_x, dest_y) and gives new board result, assumes legal input
  *
  * @param source_x
  * @param source_y
@@ -252,7 +252,7 @@ BitBoard BitBoard::move(const unsigned int source_x, const unsigned int source_y
 }
 
 /**
- * @brief captures (capture_x, capture_y) with (source_x, source_y) returns position result, assumes leagal input
+ * @brief captures (capture_x, capture_y) with (source_x, source_y) returns position result, assumes legal input
  *
  * @param source_x
  * @param source_y
@@ -272,7 +272,7 @@ BitBoard BitBoard::capture(const unsigned int source_x, const unsigned int sourc
 }
 
 /**
- * @brief returns all the leagal captures from coordinates (x, y) given that is is blacks turn if black_turn.
+ * @brief returns all the legal captures from coordinates (x, y) given that is is blacks turn if black_turn.
  *
  * @param black_turn
  * @param x
@@ -284,7 +284,7 @@ std::vector<BitBoard> BitBoard::captures(const bool black_turn, const unsigned i
     std::vector<BitBoard> capture_positions;
 
     for (auto dest : candidates) {
-        if (this->leagal_capture(black_turn, x, y, dest.first, dest.second)) {
+        if (this->legal_capture(black_turn, x, y, dest.first, dest.second)) {
             auto new_position = this->capture(x, y, dest.first, dest.second);
             capture_positions.push_back(new_position);
         }
@@ -294,7 +294,7 @@ std::vector<BitBoard> BitBoard::captures(const bool black_turn, const unsigned i
 }
 
 /**
- * @brief returls all possible non-capture moves from (x, y), assumes that there are no captures in the position
+ * @brief returns all possible non-capture moves from (x, y), assumes that there are no captures in the position
  *
  * @param black_turn
  * @param x
@@ -306,7 +306,7 @@ std::vector<BitBoard> BitBoard::moves(const bool black_turn, const unsigned int 
     std::vector<BitBoard> moves;
 
     for (auto dest : candidates) {
-        if (this->leagal_move(black_turn, x, y, dest.first, dest.second)) {
+        if (this->legal_move(black_turn, x, y, dest.first, dest.second)) {
             moves.push_back(this->move(x, y, dest.first, dest.second));
         }
     }
@@ -334,7 +334,7 @@ std::vector<BitBoard> BitBoard::captures(const bool black_turn) const {
 }
 
 /**
- * @brief returns all the leagal moves on the board, if there are captures => returns them.
+ * @brief returns all the legal moves on the board, if there are captures => returns them.
  *
  * @param black_turn
  * @return std::vector<BitBoard>
@@ -357,7 +357,7 @@ std::vector<BitBoard> BitBoard::moves(const bool black_turn) const {
 }
 
 /**
- * @brief returns the piece on (x, y) coordinates, assumes leagal coordinates.
+ * @brief returns the piece on (x, y) coordinates, assumes legal coordinates.
  *
  * @param x
  * @param y
@@ -380,7 +380,7 @@ Piece BitBoard::get(const unsigned int x, const unsigned int y) const {
 }
 
 /**
- * @brief sets the board at (x, y) to be Piece value, assumes leagal coordinates.
+ * @brief sets the board at (x, y) to be Piece value, assumes legal coordinates.
  *
  * @param x
  * @param y

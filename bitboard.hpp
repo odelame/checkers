@@ -46,8 +46,8 @@ public:
     BitBoard move(const unsigned int source_x, const unsigned int source_y, const unsigned int dest_x, const unsigned int dest_y) const;
     BitBoard capture(const unsigned int source_x, const unsigned int source_y, const unsigned int dest_x, const unsigned int dest_y) const;
 
-    bool leagal_capture(bool black_turn, const unsigned int source_x, const unsigned int source_y, const unsigned int capture_x, const unsigned int capture_y) const;
-    bool leagal_move(const bool black_turn, const unsigned int source_x, const unsigned int source_y, const unsigned int dest_x, const unsigned int dest_y) const;
+    bool legal_capture(bool black_turn, const unsigned int source_x, const unsigned int source_y, const unsigned int capture_x, const unsigned int capture_y) const;
+    bool legal_move(const bool black_turn, const unsigned int source_x, const unsigned int source_y, const unsigned int dest_x, const unsigned int dest_y) const;
 
     std::vector<BitBoard> moves(const bool black_turn, const unsigned int x, const unsigned int y) const;
     std::vector<BitBoard> captures(const bool black_turn, const unsigned int x, const unsigned int y) const;

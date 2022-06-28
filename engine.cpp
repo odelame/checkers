@@ -71,7 +71,7 @@ bool TreeNode::expand(bool black_turn) {
                 // try ro jump from it, add new jumps to new_reaches_jumps and new_coords_jumps.
                 bool captured = false;
                 for (auto [capture_x, capture_y] : candidates) {
-                    if (current_position.leagal_capture(black_turn, source_x, source_y, capture_x, capture_y)) {
+                    if (current_position.legal_capture(black_turn, source_x, source_y, capture_x, capture_y)) {
                         new_reached_jumps.push_back(current_position.capture(source_x, source_y, capture_x, capture_y));
                         new_coords_jumps.push_back(get_end_capture_pos(source_x, source_y, capture_x, capture_y));
                         captured = true;
