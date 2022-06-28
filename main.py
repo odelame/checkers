@@ -1,13 +1,16 @@
 #! /bin/env python3
 
 from os import environ
-# surpress the pygame msg
+
+# suppress the pygame msg
 environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 
-import pygame
-from consts import *
-from checkers import Api
 from argparse import ArgumentParser
+
+import pygame
+
+from checkers import Api
+from consts import *
 
 FPS = 60
 
@@ -97,7 +100,7 @@ def draw(win, checkers_api: Api, selection: tuple[int]=None, hint: tuple[int]=No
         circle_square(win, RED, hint, radius=SQUARE_SIZE // 5, rotation=rotation)  
 
     if None != selection:
-        for x, y in checkers_api.leagal_moves(*selection):
+        for x, y in checkers_api.legal_moves(*selection):
             circle_square(win, BLUE, (x, y), radius=SQUARE_SIZE // 4, rotation=rotation)
         
 def handle_game(depth: int=6, color: str="black", delay: float=0.5, flip: bool=False):
@@ -110,7 +113,7 @@ def handle_game(depth: int=6, color: str="black", delay: float=0.5, flip: bool=F
     """    
     win = pygame.display.set_mode((WIDTH, HEIGHT))  
     pygame.display.set_caption("Checkers")
-    # the usuall rotation of the board is color == "white", if user asked to rotate != rotate rotates it again.
+    # the usual rotation of the board is color == "white", if user asked to rotate != rotate rotates it again.
     rotation = (color == "white") != flip
     clock = pygame.time.Clock()
     game_api = Api(depth)
