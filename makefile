@@ -1,15 +1,16 @@
 PYBIND11_INCLUDES = $(shell python3 -m pybind11 --includes)
 PYLIB_SUFFIX = $(shell python3-config --extension-suffix)
 LINK.o = $(LINK.cpp)
-CPP=c++
-STD=c++20
-OPT=Ofast
+CPP = c++
+STD = c++20
+OPT = Ofast
 CPPFLAGS = -std=$(STD) -Wall -pedantic -$(OPT) -fPIC
+LIB_NAME = checkers
 LIB = -ltbb
 LINK.o = $(LINK.cpp)
 
 all: bitboard.o	gameapi.o 	helpFuncs.o 	engine.o
-	$(LINK.o) -shared $(CPPFLAGS) $^ -o $@$(PYLIB_SUFFIX) $(LIB)
+	$(LINK.o) -shared $(CPPFLAGS) $^ -o $(LIB_NAME)$(PYLIB_SUFFIX) $(LIB)
 
 checkers:	all
 	./main.py
